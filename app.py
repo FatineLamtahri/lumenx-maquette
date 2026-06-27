@@ -28,6 +28,7 @@ Lancer  : streamlit run app.py
 import datetime as dt
 import urllib.parse
 import urllib.request
+import urllib.error
 import streamlit as st
 
 # layout="wide" = pleine largeur ; le titre apparaît dans l'onglet du navigateur.
@@ -1214,19 +1215,26 @@ ECRAN_LABELS = {
 }
 
 def _envoyer_avis(nom, ecran, commentaire):
-    """POST le commentaire vers le Google Form. Renvoie True si l'envoi a réussi."""
+    """POST le commentaire vers le Google Form.
+    Renvoie (succes: bool, detail: str) — detail sert au diagnostic en cas d'échec."""
     data = urllib.parse.urlencode({
         _FORM_FIELDS["nom"]: nom,
         _FORM_FIELDS["ecran"]: ecran,
         _FORM_FIELDS["commentaire"]: commentaire,
     }).encode("utf-8")
-    req = urllib.request.Request(_FORM_ACTION, data=data,
-                                 headers={"User-Agent": "Mozilla/5.0"})
+    req = urllib.request.Request(
+        _FORM_ACTION, data=data, method="POST",
+        headers={"User-Agent": "Mozilla/5.0",
+                 "Content-Type": "application/x-www-form-urlencoded"},
+    )
     try:
-        urllib.request.urlopen(req, timeout=6)
-        return True
-    except Exception:
-        return False
+        resp = urllib.request.urlopen(req, timeout=10)
+        return True, f"HTTP {resp.status}"
+    except urllib.error.HTTPError as e:
+        # Google renvoie 200 quand c'est enregistré ; un 4xx/5xx = vrai échec.
+        return (e.code == 200), f"HTTPError {e.code}"
+    except Exception as e:
+        return False, f"{type(e).__name__}: {e}"
 
 def widget_avis():
     """Bouton flottant '💬 Donner mon avis' affiché sur chaque écran."""
@@ -1246,10 +1254,11 @@ def widget_avis():
             if st.button("Envoyer", type="primary", key="avis_send"):
                 if commentaire.strip():
                     ecran = ECRAN_LABELS.get(st.session_state.screen, st.session_state.screen)
-                    if _envoyer_avis(nom.strip() or "Anonyme", ecran, commentaire.strip()):
+                    ok, detail = _envoyer_avis(nom.strip() or "Anonyme", ecran, commentaire.strip())
+                    if ok:
                         st.success("Merci, votre avis est envoyé ✅")
                     else:
-                        st.error("Échec de l'envoi — réessayez dans un instant.")
+                        st.error(f"Échec de l'envoi — {detail}")
                 else:
                     st.warning("Écrivez un commentaire avant d'envoyer.")
 
