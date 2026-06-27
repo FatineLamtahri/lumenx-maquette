@@ -26,10 +26,8 @@ Lancer  : streamlit run app.py
 """
 
 import datetime as dt
-import urllib.parse
-import urllib.request
-import urllib.error
 import streamlit as st
+import streamlit.components.v1 as components
 
 # layout="wide" = pleine largeur ; le titre apparaît dans l'onglet du navigateur.
 st.set_page_config(page_title="LumenX | Investir et gérer sa trésorerie d'entreprise",
@@ -1193,12 +1191,14 @@ def espace_avenir():
 
 # ==================================================================
 # BOUTON D'AVIS — flottant, présent sur tous les écrans.
-# Envoie nom + écran courant + commentaire vers une application Web Apps Script
-# (liée à la Google Sheet). Pas de clé/secret : le Web App est en accès "Tout le
-# monde" et accepte les POST côté serveur (contrairement au Google Form -> 401).
+# Le formulaire est soumis CÔTÉ NAVIGATEUR (composant HTML) vers le Google Form,
+# qui alimente la Google Sheet. C'est la méthode fiable : Google accepte les
+# envois venant d'un navigateur (un envoi depuis le serveur est bloqué : 401/403).
+# Champs récupérés depuis le lien pré-rempli du formulaire.
 # ==================================================================
-_AVIS_URL = ("https://script.google.com/macros/s/"
-             "AKfycbwJgqrzBVRSHd3vgsRit24PPcaOcvYHm71o7zK73zV6TthZ1er8JYw1Pawr5i1nnTPF/exec")
+_FORM_ACTION = ("https://docs.google.com/forms/d/e/"
+                "1FAIpQLScmI4n2npD2S4soyTazoU7Cjz1MNcBm5AEk_bmALuGb72M4Eg/formResponse")
+_F_NOM, _F_ECRAN, _F_COMMENT = "entry.1772696514", "entry.306899172", "entry.1362605707"
 # Noms lisibles des écrans (pour la colonne « Écran » de la feuille).
 ECRAN_LABELS = {
     "accueil": "Accueil", "demo_profil": "Choix profil démo", "auth": "Connexion",
@@ -1210,30 +1210,10 @@ ECRAN_LABELS = {
     "espace_documents": "Documents", "espace_avenir": "Rubrique à venir",
 }
 
-def _envoyer_avis(nom, ecran, commentaire):
-    """POST le commentaire vers le Google Form.
-    Renvoie (succes: bool, detail: str) — detail sert au diagnostic en cas d'échec."""
-    data = urllib.parse.urlencode({
-        "nom": nom,
-        "ecran": ecran,
-        "commentaire": commentaire,
-    }).encode("utf-8")
-    req = urllib.request.Request(
-        _AVIS_URL, data=data, method="POST",
-        headers={"User-Agent": "Mozilla/5.0",
-                 "Content-Type": "application/x-www-form-urlencoded"},
-    )
-    try:
-        resp = urllib.request.urlopen(req, timeout=10)
-        return True, f"HTTP {resp.status}"
-    except urllib.error.HTTPError as e:
-        # Google renvoie 200 quand c'est enregistré ; un 4xx/5xx = vrai échec.
-        return (e.code == 200), f"HTTPError {e.code}"
-    except Exception as e:
-        return False, f"{type(e).__name__}: {e}"
-
 def widget_avis():
-    """Bouton flottant '💬 Donner mon avis' affiché sur chaque écran."""
+    """Bouton flottant '💬 Donner mon avis'. Le formulaire est soumis depuis le
+    NAVIGATEUR du visiteur (composant HTML) vers le Google Form -> Google Sheet.
+    C'est la méthode fiable (un envoi serveur est bloqué par Google : 401/403)."""
     st.markdown(
         "<style>.st-key-feedback_fab{position:fixed;right:28px;bottom:70px;z-index:9999;}"
         ".st-key-feedback_fab [data-testid='stPopover'] button{background:#2D6BFF !important;"
@@ -1241,22 +1221,30 @@ def widget_avis():
         "padding:10px 18px !important;box-shadow:0 6px 18px rgba(0,0,0,.35) !important;}</style>",
         unsafe_allow_html=True,
     )
+    ecran = ECRAN_LABELS.get(st.session_state.screen, st.session_state.screen)
+    html = """
+    <div style="font-family:Inter,Segoe UI,sans-serif;color:#e8ecf4;">
+      <div style="font-weight:600;font-size:15px;margin-bottom:8px;">Votre avis sur cet écran</div>
+      <form id="lx_form" action="%ACTION%" method="POST" target="lx_sink"
+            onsubmit="setTimeout(function(){document.getElementById('lx_ok').style.display='block';document.getElementById('lx_form').reset();},400);">
+        <input type="hidden" name="%ECRAN_ID%" value="%ECRAN_VAL%">
+        <input name="%NOM_ID%" placeholder="Votre nom (optionnel)"
+               style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:9px 11px;border-radius:8px;border:1px solid #2c456f;background:#15151f;color:#fff;font-size:14px;">
+        <textarea name="%COMMENT_ID%" required rows="4" placeholder="Ce qui vous plaît, ce qui cloche, vos idées…"
+               style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:9px 11px;border-radius:8px;border:1px solid #2c456f;background:#15151f;color:#fff;font-size:14px;resize:vertical;"></textarea>
+        <button type="submit"
+               style="background:#2D6BFF;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-weight:600;font-size:14px;cursor:pointer;">Envoyer</button>
+      </form>
+      <div id="lx_ok" style="display:none;color:#28c76f;margin-top:8px;font-size:14px;">Merci, votre avis est envoyé ✅</div>
+      <iframe name="lx_sink" style="display:none;"></iframe>
+    </div>
+    """
+    html = (html.replace("%ACTION%", _FORM_ACTION)
+                .replace("%ECRAN_ID%", _F_ECRAN).replace("%ECRAN_VAL%", ecran)
+                .replace("%NOM_ID%", _F_NOM).replace("%COMMENT_ID%", _F_COMMENT))
     with st.container(key="feedback_fab"):
         with st.popover("💬 Donner mon avis"):
-            st.markdown("**Votre avis sur cet écran**")
-            nom = st.text_input("Votre nom (optionnel)", key="avis_nom")
-            commentaire = st.text_area("Commentaire", key="avis_txt",
-                                       placeholder="Ce qui vous plaît, ce qui cloche, vos idées…")
-            if st.button("Envoyer", type="primary", key="avis_send"):
-                if commentaire.strip():
-                    ecran = ECRAN_LABELS.get(st.session_state.screen, st.session_state.screen)
-                    ok, detail = _envoyer_avis(nom.strip() or "Anonyme", ecran, commentaire.strip())
-                    if ok:
-                        st.success("Merci, votre avis est envoyé ✅")
-                    else:
-                        st.error(f"Échec de l'envoi — {detail}")
-                else:
-                    st.warning("Écrivez un commentaire avant d'envoyer.")
+            components.html(html, height=300)
 
 
 # ---------- ROUTEUR ----------
