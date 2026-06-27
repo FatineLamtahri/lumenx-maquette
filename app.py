@@ -26,6 +26,8 @@ Lancer  : streamlit run app.py
 """
 
 import datetime as dt
+import urllib.parse
+import urllib.request
 import streamlit as st
 
 # layout="wide" = pleine largeur ; le titre apparaît dans l'onglet du navigateur.
@@ -1188,6 +1190,70 @@ def espace_avenir():
     )
 
 
+# ==================================================================
+# BOUTON D'AVIS — flottant, présent sur tous les écrans.
+# Envoie nom + écran courant + commentaire vers un Google Form (qui alimente
+# une Google Sheet). Pas de clé/secret : on POST sur l'URL publique du form.
+# ==================================================================
+_FORM_ACTION = ("https://docs.google.com/forms/d/e/"
+                "1FAIpQLScmI4n2npD2S4soyTazoU7Cjz1MNcBm5AEk_bmALuGb72M4Eg/formResponse")
+_FORM_FIELDS = {
+    "nom": "entry.1772696514",
+    "ecran": "entry.306899172",
+    "commentaire": "entry.1362605707",
+}
+# Noms lisibles des écrans (pour la colonne « Écran » de la feuille).
+ECRAN_LABELS = {
+    "accueil": "Accueil", "demo_profil": "Choix profil démo", "auth": "Connexion",
+    "cgu": "CGU / RGPD", "onb_societe": "Onboarding – Entreprise",
+    "onb_representant": "Onboarding – Dirigeant", "onb_investisseur": "Onboarding – Profil",
+    "onb_ubo": "Onboarding – Bénéficiaires", "onb_validation": "Onboarding – Validation",
+    "onb_signature": "Onboarding – Signature", "onb_banque": "Onboarding – Comptes",
+    "dashboard": "Tableau de bord", "espace_profil": "Mon profil",
+    "espace_documents": "Documents", "espace_avenir": "Rubrique à venir",
+}
+
+def _envoyer_avis(nom, ecran, commentaire):
+    """POST le commentaire vers le Google Form. Renvoie True si l'envoi a réussi."""
+    data = urllib.parse.urlencode({
+        _FORM_FIELDS["nom"]: nom,
+        _FORM_FIELDS["ecran"]: ecran,
+        _FORM_FIELDS["commentaire"]: commentaire,
+    }).encode("utf-8")
+    req = urllib.request.Request(_FORM_ACTION, data=data,
+                                 headers={"User-Agent": "Mozilla/5.0"})
+    try:
+        urllib.request.urlopen(req, timeout=6)
+        return True
+    except Exception:
+        return False
+
+def widget_avis():
+    """Bouton flottant '💬 Donner mon avis' affiché sur chaque écran."""
+    st.markdown(
+        "<style>.st-key-feedback_fab{position:fixed;right:28px;bottom:70px;z-index:9999;}"
+        ".st-key-feedback_fab [data-testid='stPopover'] button{background:#2D6BFF !important;"
+        "color:#fff !important;border:none !important;font-weight:600 !important;border-radius:24px !important;"
+        "padding:10px 18px !important;box-shadow:0 6px 18px rgba(0,0,0,.35) !important;}</style>",
+        unsafe_allow_html=True,
+    )
+    with st.container(key="feedback_fab"):
+        with st.popover("💬 Donner mon avis"):
+            st.markdown("**Votre avis sur cet écran**")
+            nom = st.text_input("Votre nom (optionnel)", key="avis_nom")
+            commentaire = st.text_area("Commentaire", key="avis_txt",
+                                       placeholder="Ce qui vous plaît, ce qui cloche, vos idées…")
+            if st.button("Envoyer", type="primary", key="avis_send"):
+                if commentaire.strip():
+                    ecran = ECRAN_LABELS.get(st.session_state.screen, st.session_state.screen)
+                    if _envoyer_avis(nom.strip() or "Anonyme", ecran, commentaire.strip()):
+                        st.success("Merci, votre avis est envoyé ✅")
+                    else:
+                        st.error("Échec de l'envoi — réessayez dans un instant.")
+                else:
+                    st.warning("Écrivez un commentaire avant d'envoyer.")
+
+
 # ---------- ROUTEUR ----------
 # Associe chaque nom d'écran à sa fonction. La dernière ligne exécute l'écran
 # dont le nom est dans st.session_state["screen"] (mis à jour par les boutons).
@@ -1210,3 +1276,5 @@ ecrans = {
 }
 # Affiche l'écran courant.
 ecrans[st.session_state.screen]()
+# Bouton d'avis flottant, sur tous les écrans.
+widget_avis()
