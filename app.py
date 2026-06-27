@@ -1193,16 +1193,12 @@ def espace_avenir():
 
 # ==================================================================
 # BOUTON D'AVIS — flottant, présent sur tous les écrans.
-# Envoie nom + écran courant + commentaire vers un Google Form (qui alimente
-# une Google Sheet). Pas de clé/secret : on POST sur l'URL publique du form.
+# Envoie nom + écran courant + commentaire vers une application Web Apps Script
+# (liée à la Google Sheet). Pas de clé/secret : le Web App est en accès "Tout le
+# monde" et accepte les POST côté serveur (contrairement au Google Form -> 401).
 # ==================================================================
-_FORM_ACTION = ("https://docs.google.com/forms/d/e/"
-                "1FAIpQLScmI4n2npD2S4soyTazoU7Cjz1MNcBm5AEk_bmALuGb72M4Eg/formResponse")
-_FORM_FIELDS = {
-    "nom": "entry.1772696514",
-    "ecran": "entry.306899172",
-    "commentaire": "entry.1362605707",
-}
+_AVIS_URL = ("https://script.google.com/macros/s/"
+             "AKfycbwJgqrzBVRSHd3vgsRit24PPcaOcvYHm71o7zK73zV6TthZ1er8JYw1Pawr5i1nnTPF/exec")
 # Noms lisibles des écrans (pour la colonne « Écran » de la feuille).
 ECRAN_LABELS = {
     "accueil": "Accueil", "demo_profil": "Choix profil démo", "auth": "Connexion",
@@ -1218,12 +1214,12 @@ def _envoyer_avis(nom, ecran, commentaire):
     """POST le commentaire vers le Google Form.
     Renvoie (succes: bool, detail: str) — detail sert au diagnostic en cas d'échec."""
     data = urllib.parse.urlencode({
-        _FORM_FIELDS["nom"]: nom,
-        _FORM_FIELDS["ecran"]: ecran,
-        _FORM_FIELDS["commentaire"]: commentaire,
+        "nom": nom,
+        "ecran": ecran,
+        "commentaire": commentaire,
     }).encode("utf-8")
     req = urllib.request.Request(
-        _FORM_ACTION, data=data, method="POST",
+        _AVIS_URL, data=data, method="POST",
         headers={"User-Agent": "Mozilla/5.0",
                  "Content-Type": "application/x-www-form-urlencoded"},
     )
