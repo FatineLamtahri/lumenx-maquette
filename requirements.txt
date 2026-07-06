@@ -1,2 +1,1 @@
 streamlit==1.57.0
-streamlit-scroll-to-top
