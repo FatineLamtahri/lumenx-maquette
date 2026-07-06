@@ -28,6 +28,7 @@ Lancer  : streamlit run app.py
 import datetime as dt
 import streamlit as st
 import streamlit.components.v1 as components
+from streamlit_scroll_to_top import scroll_to_here
 
 # layout="wide" = pleine largeur ; le titre apparaît dans l'onglet du navigateur.
 st.set_page_config(page_title="LumenX | Investir et gérer sa trésorerie d'entreprise",
@@ -76,20 +77,25 @@ if "societe_found" not in st.session_state:
     st.session_state.societe_found = False       # SIRET validé ?
     st.session_state.societe = None              # infos société (fictives)
     st.session_state.societe_error = ""          # message d'erreur SIRET
+if "scroll_to_top" not in st.session_state:
+    st.session_state.scroll_to_top = False       # déclenche le scroll-to-top après navigation
 
 def go(screen):
     """Change d'écran (utilisé par la plupart des boutons via on_click)."""
     st.session_state.screen = screen
+    st.session_state.scroll_to_top = True
 
 def set_profil(p, screen):
     """Mémorise le profil démo choisi puis va à l'écran demandé."""
     st.session_state.profil = p
     st.session_state.screen = screen
+    st.session_state.scroll_to_top = True
 
 def connexion(existant):
     """Aiguillage après login (simulé via la case 'compte existant').
     Compte existant -> accès direct au tableau de bord (branche courte, sans onboarding).
     Sinon -> création d'espace (CGU puis parcours KYB)."""
+    st.session_state.scroll_to_top = True
     if existant:
         st.session_state.profil = "Mon entreprise"
         st.session_state.screen = "dashboard"
@@ -1469,41 +1475,13 @@ ecrans = {
     "espace_documents": espace_documents,
     "espace_avenir": espace_avenir,
 }
-def _scroll_haut():
-    """Remonte en haut au changement d'écran SANS bloquer les clics.
-
-    Astuce : l'iframe (seul moyen d'exécuter du JS) a un contenu CONSTANT, donc
-    Streamlit ne la recharge jamais entre les runs -> elle ne peut pas « avaler »
-    le clic suivant. Elle SURVEILLE (polling) un marqueur normal, mis à jour à
-    chaque run avec le nom de l'écran, et remonte en haut quand ce nom change."""
-    # Marqueur (élément normal, pas d'iframe -> aucun impact sur les clics).
-    st.markdown(
-        f"<div id='_cur_screen' data-screen='{st.session_state.screen}' style='display:none'></div>",
-        unsafe_allow_html=True,
-    )
-    # Iframe au contenu FIXE : chargée une seule fois, surveille le marqueur.
-    components.html(
-        """
-        <script>
-        try {
-          var w = window.parent, d = w.document, last = null;
-          function scr(){ var e = d.getElementById('_cur_screen'); return e ? e.getAttribute('data-screen') : null; }
-          function top(){
-            try { w.scrollTo(0, 0); } catch(e){}
-            ['html','body','[data-testid="stMain"]','[data-testid="stAppViewContainer"]','section.main','.stApp']
-              .forEach(function(s){ var el = d.querySelector(s); if (el) { try { el.scrollTop = 0; } catch(e){} } });
-          }
-          last = scr();
-          setInterval(function(){ var s = scr(); if (s !== null && s !== last) { last = s; top(); } }, 150);
-        } catch(e){}
-        </script>
-        """,
-        height=0,
-    )
+# Remonte en haut de page juste après une navigation (composant dédié `scroll_to_here`).
+# scroll_to_top est mis à True par go / set_profil / connexion lors d'un changement d'écran.
+if st.session_state.get("scroll_to_top", False):
+    scroll_to_here(0, key="haut")
+    st.session_state.scroll_to_top = False
 
 # Affiche l'écran courant.
 ecrans[st.session_state.screen]()
 # Bouton d'avis flottant, sur tous les écrans.
 widget_avis()
-# Remonte en haut au changement d'écran (iframe fixe qui surveille un marqueur).
-_scroll_haut()
