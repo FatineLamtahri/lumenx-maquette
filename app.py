@@ -66,6 +66,8 @@ st.markdown(
     [class*='qcard'] div[role='radiogroup']{gap:4.5px !important;}
     [class*='qcard'] [data-testid='stWidgetLabel'] p{font-size:15.5px !important;font-weight:600 !important;margin-bottom:8px !important;}
     [class*='qcard'] div[role='radiogroup'] label p{font-size:15px !important;font-weight:400 !important;}
+    /* Case « Simuler un compte existant » : garder sur une seule ligne */
+    .st-key-simu_existant label p{white-space:nowrap !important;}
     /* --- Bouton d'avis flottant --- */
     .st-key-feedback_fab{position:fixed;right:28px;bottom:70px;z-index:9999;}
     .st-key-feedback_fab button{background:#2D6BFF !important;color:#fff !important;border:none !important;font-weight:600 !important;border-radius:24px !important;padding:10px 18px !important;box-shadow:0 6px 18px rgba(0,0,0,.35) !important;}
@@ -388,7 +390,7 @@ def ecran_auth():
                 # coché -> connexion directe au tableau de bord, sans onboarding.
                 st.markdown("<div style='margin-top:18px;'></div>", unsafe_allow_html=True)
                 st.checkbox(
-                    "🧪 Simuler un compte déjà existant",
+                    "🧪 Simuler un compte existant",
                     key="simu_existant",
                     help="Démo : si coché, « Se connecter » mène directement au tableau de bord, "
                          "sans repasser par la création d'espace (KYB).",
