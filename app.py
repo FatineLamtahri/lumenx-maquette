@@ -643,17 +643,17 @@ def ecran_onb_signature():
 # Chaque question est présentée dans une CARTE encadrée (style A).
 
 def _cartes_profil_css():
-    """Chaque question dans une carte à bordure bleue translucide + léger fond bleuté."""
+    """Carte à bordure bleue translucide + léger fond bleuté (ciblée par la key 'qcard')."""
     st.markdown(
-        "<style>[data-testid='stVerticalBlockBorderWrapper']{background:rgba(45,107,255,0.06) !important;"
-        "border:1px solid rgba(45,107,255,0.45) !important;border-radius:14px !important;margin-bottom:14px !important;}"
-        "</style>",
+        "<style>[class*='qcard']{background:rgba(45,107,255,0.06) !important;"
+        "border:1px solid rgba(45,107,255,0.45) !important;border-radius:14px !important;"
+        "padding:6px 20px 12px !important;margin-bottom:14px !important;}</style>",
         unsafe_allow_html=True,
     )
 
 def _question(label, options, key):
     """Une question (radio) dans une carte à bordure bleue."""
-    with st.container(border=True):
+    with st.container(key=f"qcard_{key}"):
         st.radio(label, options, index=None, key=key)
 
 def _btn_continuer(cible):
@@ -728,7 +728,7 @@ def ecran_onb_profil2():
             ],
             "p2_experience",
         )
-        with st.container(border=True):
+        with st.container(key="qcard_satisf"):
             sans_objet = st.checkbox("Sans objet — je n'ai jamais placé", key="p2_satisf_na")
             st.slider(
                 "Globalement, à quel point êtes-vous satisfait(e) de vos expériences de placement "
@@ -786,7 +786,7 @@ def ecran_onb_profil4():
                   "Section 4 sur 4 — Quels sont vos objectifs financiers ?")
     col, _ = st.columns([2, 0.5])
     with col:
-        with st.container(border=True):
+        with st.container(key="qcard_objectifs"):
             st.caption("Plusieurs réponses possibles.")
             st.checkbox("Faire fructifier la trésorerie excédentaire de mon entreprise", key="p4_fructifier")
             st.checkbox("Avoir une visibilité globale sur la trésorerie de mon entreprise", key="p4_visibilite")
