@@ -640,62 +640,85 @@ def ecran_onb_signature():
 # ==================================================================
 # L'étape « Profil » (index 2) est découpée en 4 sous-étapes qui s'enchaînent.
 # Toutes affichent stepper_panel(2) : « Profil » reste l'étape active à gauche.
+# Chaque question est présentée dans une CARTE encadrée (style A).
+
+def _cartes_profil_css():
+    """Transforme les conteneurs bordés en cartes sombres arrondies."""
+    st.markdown(
+        "<style>[data-testid='stVerticalBlockBorderWrapper']{background:#0E0E16 !important;"
+        "border:1px solid #24344f !important;border-radius:14px !important;margin-bottom:14px !important;}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
+
+def _question(label, options, key):
+    """Une question (radio) dans une carte encadrée."""
+    with st.container(border=True):
+        st.radio(label, options, index=None, key=key)
+
+def _btn_continuer(cible):
+    """Bouton « Continuer » petit, aligné à droite."""
+    _, c = st.columns([3, 1])
+    with c:
+        st.button("Continuer", type="primary", use_container_width=True,
+                  on_click=go, args=(cible,))
+
 
 def ecran_onb_investisseur():
     """Profil — sous-étape 1/4 : situation de trésorerie actuelle."""
     stepper_panel(2)
+    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_representant",))
     titre_section("LumenX et vous",
                   "Section 1 sur 4 — Où en est votre trésorerie aujourd'hui ?")
     col, _ = st.columns([2, 0.5])
     with col:
-        st.radio(
+        _question(
             "Quelle visibilité avez-vous aujourd'hui sur votre trésorerie à venir "
             "(encaissements et décaissements futurs) ?",
             ["Moins de 3 mois", "3 à 6 mois", "6 mois à 1 an", "Plus d'1 an", "Je ne sais pas"],
-            index=None, key="p1_visibilite",
+            "p1_visibilite",
         )
-        st.radio(
+        _question(
             "Quel est le montant moyen de votre trésorerie « dormante », celle qui reste "
             "sur le compte courant sans être utilisée d'un mois sur l'autre ?",
             ["Moins de 50 k€", "50 – 150 k€", "150 – 500 k€", "Plus de 500 k€", "Je ne sais pas"],
-            index=None, key="p1_dormante",
+            "p1_dormante",
         )
-        st.radio(
+        _question(
             "Connaissez-vous votre « coussin de sécurité » minimum, le niveau de trésorerie "
             "(souvent exprimé en mois de charges fixes) sous lequel vous ne voulez jamais descendre ?",
             ["1 mois de charges fixes", "3 mois de charges fixes", "6 mois de charges fixes",
              "Je ne l'ai pas encore défini"],
-            index=None, key="p1_coussin",
+            "p1_coussin",
         )
-        st.divider()
-        st.button("Continuer", type="primary", use_container_width=True,
-                  on_click=go, args=("onb_profil2",))
+        _btn_continuer("onb_profil2")
 
 
 def ecran_onb_profil2():
     """Profil — sous-étape 2/4 : profil investisseur."""
     stepper_panel(2)
+    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_investisseur",))
     titre_section("LumenX et vous",
                   "Section 2 sur 4 — Quel investisseur êtes-vous ?")
     col, _ = st.columns([2, 0.5])
     with col:
-        st.radio(
+        _question(
             "Quand vous pensez « placement de trésorerie », quel mot vous vient en premier ?",
             ["Sécurité", "Rendement", "Fiscalité", "Inflation", "Je ne sais pas"],
-            index=None, key="p2_mot",
+            "p2_mot",
         )
-        st.radio(
+        _question(
             "Quelle est votre tolérance face à une baisse temporaire de la valeur de vos placements ?",
             [
                 "Nulle — je veux récupérer chaque euro placé, même si le rendement est très faible.",
                 "Faible — acceptable sur une petite partie de la trésorerie, si le potentiel de gain le justifie sur le long terme.",
                 "Modérée — j'accepte les fluctuations de marché pour viser une meilleure performance à moyen ou long terme.",
             ],
-            index=None, key="p2_tolerance",
+            "p2_tolerance",
         )
-        st.radio(
+        _question(
             "Quelle est votre expérience des placements financiers ?",
             [
                 "Débutant — je n'ai jamais réalisé de placement",
@@ -703,15 +726,16 @@ def ecran_onb_profil2():
                 "Confirmé — de 5 à 15 placements par an",
                 "Expérimenté — plus de 15 placements par an",
             ],
-            index=None, key="p2_experience",
+            "p2_experience",
         )
-        sans_objet = st.checkbox("Sans objet — je n'ai jamais placé", key="p2_satisf_na")
-        st.slider(
-            "Globalement, à quel point êtes-vous satisfait(e) de vos expériences de placement "
-            "passées ? (0 = très insatisfait, 10 = très satisfait)",
-            0, 10, 5, disabled=sans_objet, key="p2_satisf",
-        )
-        st.radio(
+        with st.container(border=True):
+            sans_objet = st.checkbox("Sans objet — je n'ai jamais placé", key="p2_satisf_na")
+            st.slider(
+                "Globalement, à quel point êtes-vous satisfait(e) de vos expériences de placement "
+                "passées ? (0 = très insatisfait, 10 = très satisfait)",
+                0, 10, 5, disabled=sans_objet, key="p2_satisf",
+            )
+        _question(
             "Préférez-vous bloquer des fonds sur une durée connue à l'avance pour un rendement "
             "garanti, ou garder de la flexibilité quitte à accepter un taux variable ?",
             [
@@ -719,58 +743,55 @@ def ecran_onb_profil2():
                 "Garder de la flexibilité pour un rendement potentiellement plus élevé, mais incertain",
                 "Un équilibre entre les deux",
             ],
-            index=None, key="p2_blocage",
+            "p2_blocage",
         )
-        st.divider()
-        st.button("Continuer", type="primary", use_container_width=True,
-                  on_click=go, args=("onb_profil3",))
+        _btn_continuer("onb_profil3")
 
 
 def ecran_onb_profil3():
     """Profil — sous-étape 3/4 : contraintes."""
     stepper_panel(2)
+    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil2",))
     titre_section("LumenX et vous",
                   "Section 3 sur 4 — Sous quelles contraintes opérez-vous ?")
     col, _ = st.columns([2, 0.5])
     with col:
-        st.radio(
+        _question(
             "En cas de coup dur, sous quel délai maximum devez-vous pouvoir récupérer les fonds placés ?",
             ["Sous 48 h", "Sous 1 mois", "Sous 3 mois", "Sous 1 an", "Plus d'1 an"],
-            index=None, key="p3_delai",
+            "p3_delai",
         )
-        st.radio(
+        _question(
             "Quelle part de votre temps souhaitez-vous consacrer au suivi de ces placements ?",
             ["Quotidiennement", "Chaque semaine", "Chaque mois", "Chaque trimestre",
              "Une fois par an ou moins"],
-            index=None, key="p3_temps",
+            "p3_temps",
         )
-        st.radio(
+        _question(
             "Avez-vous des critères extra-financiers importants, par exemple investir dans des "
             "fonds responsables (ISR/ESG) ou soutenir l'économie locale ?",
             ["Oui, c'est important pour moi", "Non", "Je ne sais pas"],
-            index=None, key="p3_esg",
+            "p3_esg",
         )
-        st.divider()
-        st.button("Continuer", type="primary", use_container_width=True,
-                  on_click=go, args=("onb_profil4",))
+        _btn_continuer("onb_profil4")
 
 
 def ecran_onb_profil4():
     """Profil — sous-étape 4/4 : objectifs (choix multiple)."""
     stepper_panel(2)
+    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil3",))
     titre_section("LumenX et vous",
                   "Section 4 sur 4 — Quels sont vos objectifs financiers ?")
     col, _ = st.columns([2, 0.5])
     with col:
-        st.caption("Plusieurs réponses possibles.")
-        st.checkbox("Faire fructifier la trésorerie excédentaire de mon entreprise", key="p4_fructifier")
-        st.checkbox("Avoir une visibilité globale sur la trésorerie de mon entreprise", key="p4_visibilite")
-        st.checkbox("Avoir une compréhension fine des mouvements de trésorerie de mon entreprise", key="p4_comprehension")
-        st.divider()
-        st.button("Continuer", type="primary", use_container_width=True,
-                  on_click=go, args=("onb_ubo",))
+        with st.container(border=True):
+            st.caption("Plusieurs réponses possibles.")
+            st.checkbox("Faire fructifier la trésorerie excédentaire de mon entreprise", key="p4_fructifier")
+            st.checkbox("Avoir une visibilité globale sur la trésorerie de mon entreprise", key="p4_visibilite")
+            st.checkbox("Avoir une compréhension fine des mouvements de trésorerie de mon entreprise", key="p4_comprehension")
+        _btn_continuer("onb_ubo")
 
 
 # ==================================================================
