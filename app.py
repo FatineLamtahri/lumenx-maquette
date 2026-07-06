@@ -28,7 +28,6 @@ Lancer  : streamlit run app.py
 import datetime as dt
 import streamlit as st
 import streamlit.components.v1 as components
-from streamlit_scroll_to_top import scroll_to_here
 
 # layout="wide" = pleine largeur ; le titre apparaît dans l'onglet du navigateur.
 st.set_page_config(page_title="LumenX | Investir et gérer sa trésorerie d'entreprise",
@@ -77,25 +76,19 @@ if "societe_found" not in st.session_state:
     st.session_state.societe_found = False       # SIRET validé ?
     st.session_state.societe = None              # infos société (fictives)
     st.session_state.societe_error = ""          # message d'erreur SIRET
-if "scroll_to_top" not in st.session_state:
-    st.session_state.scroll_to_top = False       # déclenche le scroll-to-top après navigation
-
 def go(screen):
     """Change d'écran (utilisé par la plupart des boutons via on_click)."""
     st.session_state.screen = screen
-    st.session_state.scroll_to_top = True
 
 def set_profil(p, screen):
     """Mémorise le profil démo choisi puis va à l'écran demandé."""
     st.session_state.profil = p
     st.session_state.screen = screen
-    st.session_state.scroll_to_top = True
 
 def connexion(existant):
     """Aiguillage après login (simulé via la case 'compte existant').
     Compte existant -> accès direct au tableau de bord (branche courte, sans onboarding).
     Sinon -> création d'espace (CGU puis parcours KYB)."""
-    st.session_state.scroll_to_top = True
     if existant:
         st.session_state.profil = "Mon entreprise"
         st.session_state.screen = "dashboard"
@@ -1475,11 +1468,20 @@ ecrans = {
     "espace_documents": espace_documents,
     "espace_avenir": espace_avenir,
 }
-# Remonte en haut de page juste après une navigation (composant dédié `scroll_to_here`).
-# scroll_to_top est mis à True par go / set_profil / connexion lors d'un changement d'écran.
-if st.session_state.get("scroll_to_top", False):
-    scroll_to_here(0, key="haut")
-    st.session_state.scroll_to_top = False
+# Remonte en haut de page dès qu'on change d'écran (scroll natif, sans lag).
+# On ne le déclenche QUE lors d'un vrai changement d'écran, pour ne pas rejouer
+# le scroll (et le petit iframe) à chaque interaction interne à l'écran.
+if st.session_state.get("_dernier_ecran") != st.session_state.screen:
+    st.session_state["_dernier_ecran"] = st.session_state.screen
+    components.html(
+        "<script>"
+        "const d = window.parent.document;"
+        "window.parent.scrollTo(0, 0);"
+        "const m = d.querySelector('section.main') || d.querySelector('[data-testid=\"stMain\"]');"
+        "if (m) { m.scrollTo(0, 0); }"
+        "</script>",
+        height=0,
+    )
 
 # Affiche l'écran courant.
 ecrans[st.session_state.screen]()
