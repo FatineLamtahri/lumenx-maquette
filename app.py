@@ -39,10 +39,10 @@ st.markdown(
     """
     <style>
     /* Polices de marque chargées depuis Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,600&family=Inter:wght@400;600;700;800&display=swap');
-    /* Inter = police par défaut du corps de texte sur tout l'app */
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,600&family=Manrope:wght@400;500;600;700;800&display=swap');
+    /* Manrope = police par défaut du corps de texte sur tout l'app */
     html, body, [class*="css"], .stApp, p, div, span, label, button, input, select, textarea {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Manrope', sans-serif;
     }
     /* Fraunces (serif) réservée aux titres */
     h1, h2, h3 { font-family: 'Fraunces', serif; }
@@ -643,18 +643,18 @@ def ecran_onb_signature():
 # Chaque question est présentée dans une CARTE encadrée (style A).
 
 def _cartes_profil_css():
-    """Transforme les conteneurs bordés en cartes sombres arrondies."""
+    """Encadré léger autour de chaque question (option B : pastilles à l'intérieur)."""
     st.markdown(
-        "<style>[data-testid='stVerticalBlockBorderWrapper']{background:#0E0E16 !important;"
-        "border:1px solid #24344f !important;border-radius:14px !important;margin-bottom:14px !important;}"
+        "<style>[data-testid='stVerticalBlockBorderWrapper']{background:transparent !important;"
+        "border:1px solid #1c2740 !important;border-radius:12px !important;margin-bottom:12px !important;}"
         "</style>",
         unsafe_allow_html=True,
     )
 
 def _question(label, options, key):
-    """Une question (radio) dans une carte encadrée."""
+    """Une question présentée en pastilles cliquables (choix unique)."""
     with st.container(border=True):
-        st.radio(label, options, index=None, key=key)
+        st.pills(label, options, selection_mode="single", key=key)
 
 def _btn_continuer(cible):
     """Bouton « Continuer » petit, aligné à droite."""
@@ -787,10 +787,15 @@ def ecran_onb_profil4():
     col, _ = st.columns([2, 0.5])
     with col:
         with st.container(border=True):
-            st.caption("Plusieurs réponses possibles.")
-            st.checkbox("Faire fructifier la trésorerie excédentaire de mon entreprise", key="p4_fructifier")
-            st.checkbox("Avoir une visibilité globale sur la trésorerie de mon entreprise", key="p4_visibilite")
-            st.checkbox("Avoir une compréhension fine des mouvements de trésorerie de mon entreprise", key="p4_comprehension")
+            st.pills(
+                "Sélectionnez vos objectifs (plusieurs réponses possibles) :",
+                [
+                    "Faire fructifier la trésorerie excédentaire de mon entreprise",
+                    "Avoir une visibilité globale sur la trésorerie de mon entreprise",
+                    "Avoir une compréhension fine des mouvements de trésorerie de mon entreprise",
+                ],
+                selection_mode="multi", key="p4_objectifs",
+            )
         _btn_continuer("onb_ubo")
 
 
