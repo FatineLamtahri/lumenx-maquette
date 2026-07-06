@@ -233,11 +233,11 @@ def ecran_accueil():
         st.markdown(
             """
             <h1 style="font-family:'Fraunces',serif;font-size:52px;line-height:1.06;margin:0;font-weight:600;color:#fff;">Faites votre métier<br><span style="color:#3B82F6;font-size:40px;font-style:italic;">Nous faisons fructifier votre succès</span></h1>
-            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:440px;">Votre priorité est de développer votre activité, d'innover et de satisfaire vos clients.</p>
-            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:440px;">Le notre est de .... ?.</p>
-            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:440px;">LumenX est la plateforme qui vous aide à optimiser l'argent de votre entreprise.</p>
-            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:440px;">Laisser votre trésorerie dormir sur un compte courant classique n'est pas un choix de sécurité, c'est une perte sèche.</p>
-            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:0 0 28px;max-width:440px;">Ne choisissez plus entre gérer votre entreprise et optimiser vos finances. Faites les deux!.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:600px;">Votre priorité est de développer votre activité, d'innover et de satisfaire vos clients.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:600px;">Le notre est de .... ?.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:600px;">LumenX est la plateforme qui vous aide à optimiser l'argent de votre entreprise.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:600px;">Laisser votre trésorerie dormir sur un compte courant classique n'est pas un choix de sécurité, c'est une perte sèche.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:0 0 28px;max-width:600px;">Ne choisissez plus entre gérer votre entreprise et optimiser vos finances. Faites les deux!.</p>
             """,
             unsafe_allow_html=True,
         )
