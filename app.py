@@ -643,18 +643,18 @@ def ecran_onb_signature():
 # Chaque question est présentée dans une CARTE encadrée (style A).
 
 def _cartes_profil_css():
-    """Encadré léger autour de chaque question (option B : pastilles à l'intérieur)."""
+    """Chaque question dans une carte à bordure bleue translucide + léger fond bleuté."""
     st.markdown(
-        "<style>[data-testid='stVerticalBlockBorderWrapper']{background:transparent !important;"
-        "border:1px solid #1c2740 !important;border-radius:12px !important;margin-bottom:12px !important;}"
+        "<style>[data-testid='stVerticalBlockBorderWrapper']{background:rgba(45,107,255,0.06) !important;"
+        "border:1px solid rgba(45,107,255,0.45) !important;border-radius:14px !important;margin-bottom:14px !important;}"
         "</style>",
         unsafe_allow_html=True,
     )
 
 def _question(label, options, key):
-    """Une question présentée en pastilles cliquables (choix unique)."""
+    """Une question (radio) dans une carte à bordure bleue."""
     with st.container(border=True):
-        st.pills(label, options, selection_mode="single", key=key)
+        st.radio(label, options, index=None, key=key)
 
 def _btn_continuer(cible):
     """Bouton « Continuer » petit, aligné à droite."""
@@ -787,15 +787,10 @@ def ecran_onb_profil4():
     col, _ = st.columns([2, 0.5])
     with col:
         with st.container(border=True):
-            st.pills(
-                "Sélectionnez vos objectifs (plusieurs réponses possibles) :",
-                [
-                    "Faire fructifier la trésorerie excédentaire de mon entreprise",
-                    "Avoir une visibilité globale sur la trésorerie de mon entreprise",
-                    "Avoir une compréhension fine des mouvements de trésorerie de mon entreprise",
-                ],
-                selection_mode="multi", key="p4_objectifs",
-            )
+            st.caption("Plusieurs réponses possibles.")
+            st.checkbox("Faire fructifier la trésorerie excédentaire de mon entreprise", key="p4_fructifier")
+            st.checkbox("Avoir une visibilité globale sur la trésorerie de mon entreprise", key="p4_visibilite")
+            st.checkbox("Avoir une compréhension fine des mouvements de trésorerie de mon entreprise", key="p4_comprehension")
         _btn_continuer("onb_ubo")
 
 
