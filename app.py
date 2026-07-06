@@ -60,6 +60,15 @@ st.markdown(
     .block-container > div { flex: 0 0 auto !important; width: 100%; margin-bottom: 4cm; }
     /* Empêche une barre de défilement horizontale due aux bandeaux fixes */
     html, body { overflow-x: hidden; }
+    /* --- Cartes de questions du profil (bordure bleue translucide) --- */
+    [class*='qcard']{background:rgba(45,107,255,0.06) !important;border:1px solid rgba(45,107,255,0.45) !important;border-radius:14px !important;padding:10px 22px 16px !important;margin-bottom:16px !important;}
+    [class*='qcard'] div[role='radiogroup'] label{margin:9px 0 !important;gap:12px !important;}
+    [class*='qcard'] div[role='radiogroup']{gap:6px !important;}
+    [class*='qcard'] [data-testid='stWidgetLabel'] p{font-size:15.5px !important;font-weight:600 !important;margin-bottom:8px !important;}
+    [class*='qcard'] div[role='radiogroup'] label p{font-size:15px !important;font-weight:400 !important;}
+    /* --- Bouton d'avis flottant --- */
+    .st-key-feedback_fab{position:fixed;right:28px;bottom:70px;z-index:9999;}
+    .st-key-feedback_fab button{background:#2D6BFF !important;color:#fff !important;border:none !important;font-weight:600 !important;border-radius:24px !important;padding:10px 18px !important;box-shadow:0 6px 18px rgba(0,0,0,.35) !important;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -648,19 +657,6 @@ def ecran_onb_signature():
 # Toutes affichent stepper_panel(2) : « Profil » reste l'étape active à gauche.
 # Chaque question est présentée dans une CARTE encadrée (style A).
 
-def _cartes_profil_css():
-    """Carte à bordure bleue translucide + léger fond bleuté (ciblée par la key 'qcard')."""
-    st.markdown(
-        "<style>[class*='qcard']{background:rgba(45,107,255,0.06) !important;"
-        "border:1px solid rgba(45,107,255,0.45) !important;border-radius:14px !important;"
-        "padding:10px 22px 16px !important;margin-bottom:16px !important;}"
-        "[class*='qcard'] div[role='radiogroup'] label{margin:9px 0 !important;gap:12px !important;}"
-        "[class*='qcard'] div[role='radiogroup']{gap:6px !important;}"
-        "[class*='qcard'] [data-testid='stWidgetLabel'] p{font-size:15.5px !important;font-weight:600 !important;margin-bottom:8px !important;}"
-        "[class*='qcard'] div[role='radiogroup'] label p{font-size:15px !important;font-weight:400 !important;}</style>",
-        unsafe_allow_html=True,
-    )
-
 def _question(label, options, key):
     """Une question (radio) dans une carte à bordure bleue."""
     with st.container(key=f"qcard_{key}"):
@@ -690,7 +686,6 @@ def _barre_progression(section, debut, fin, total=12):
 def ecran_onb_investisseur():
     """Profil — Section 1/4 (écran 1/2) : visibilité & trésorerie dormante."""
     stepper_panel(3)
-    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_secteur",))
     titre_section("LumenX et vous", "Où en est votre trésorerie aujourd'hui ?")
     _barre_progression(1, 1, 2)
@@ -714,7 +709,6 @@ def ecran_onb_investisseur():
 def ecran_onb_profil1b():
     """Profil — Section 1/4 (écran 2/2) : coussin de sécurité."""
     stepper_panel(3)
-    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_investisseur",))
     titre_section("LumenX et vous", "Où en est votre trésorerie aujourd'hui ?")
     _barre_progression(1, 3, 3)
@@ -733,7 +727,6 @@ def ecran_onb_profil1b():
 def ecran_onb_profil2a():
     """Profil — Section 2/4 (écran 1/3) : représentation & tolérance au risque."""
     stepper_panel(3)
-    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil1b",))
     titre_section("LumenX et vous", "Quel investisseur êtes-vous ?")
     _barre_progression(2, 4, 5)
@@ -759,7 +752,6 @@ def ecran_onb_profil2a():
 def ecran_onb_profil2b():
     """Profil — Section 2/4 (écran 2/3) : expérience & satisfaction."""
     stepper_panel(3)
-    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil2a",))
     titre_section("LumenX et vous", "Quel investisseur êtes-vous ?")
     _barre_progression(2, 6, 7)
@@ -788,7 +780,6 @@ def ecran_onb_profil2b():
 def ecran_onb_profil2c():
     """Profil — Section 2/4 (écran 3/3) : blocage vs flexibilité."""
     stepper_panel(3)
-    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil2b",))
     titre_section("LumenX et vous", "Quel investisseur êtes-vous ?")
     _barre_progression(2, 8, 8)
@@ -810,7 +801,6 @@ def ecran_onb_profil2c():
 def ecran_onb_profil3a():
     """Profil — Section 3/4 (écran 1/2) : liquidité & suivi."""
     stepper_panel(3)
-    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil2c",))
     titre_section("LumenX et vous", "Sous quelles contraintes opérez-vous ?")
     _barre_progression(3, 9, 10)
@@ -833,7 +823,6 @@ def ecran_onb_profil3a():
 def ecran_onb_profil3b():
     """Profil — Section 3/4 (écran 2/2) : critères extra-financiers."""
     stepper_panel(3)
-    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil3a",))
     titre_section("LumenX et vous", "Sous quelles contraintes opérez-vous ?")
     _barre_progression(3, 11, 11)
@@ -851,7 +840,6 @@ def ecran_onb_profil3b():
 def ecran_onb_profil4():
     """Profil — Section 4/4 : objectifs (choix multiple)."""
     stepper_panel(3)
-    _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil3b",))
     titre_section("LumenX et vous", "Quels sont vos objectifs financiers ?")
     _barre_progression(4, 12, 12)
@@ -1460,21 +1448,9 @@ ECRAN_LABELS = {
     "espace_documents": "Documents", "espace_avenir": "Rubrique à venir",
 }
 
-def widget_avis():
-    """Bouton flottant '💬 Donner mon avis'. Le formulaire est soumis depuis le
-    NAVIGATEUR du visiteur (composant HTML) vers le Google Form -> Google Sheet.
-    C'est la méthode fiable (un envoi serveur est bloqué par Google : 401/403)."""
-    st.markdown(
-        "<style>.st-key-feedback_fab{position:fixed;right:28px;bottom:70px;z-index:9999;}"
-        ".st-key-feedback_fab [data-testid='stPopover'] button{background:#2D6BFF !important;"
-        "color:#fff !important;border:none !important;font-weight:600 !important;border-radius:24px !important;"
-        "padding:10px 18px !important;box-shadow:0 6px 18px rgba(0,0,0,.35) !important;}</style>",
-        unsafe_allow_html=True,
-    )
-    ecran = ECRAN_LABELS.get(st.session_state.screen, st.session_state.screen)
-    html = """
+# Gabarit HTML du formulaire d'avis (défini une seule fois au niveau du module).
+_FEEDBACK_HTML = """
     <div style="font-family:Inter,Segoe UI,sans-serif;color:#e8ecf4;">
-      <div style="font-weight:600;font-size:15px;margin-bottom:8px;">Votre avis sur cet écran</div>
       <form id="lx_form" action="%ACTION%" method="POST" target="lx_sink"
             onsubmit="setTimeout(function(){document.getElementById('lx_ok').style.display='block';document.getElementById('lx_form').reset();},400);">
         <input type="hidden" name="%ECRAN_ID%" value="%ECRAN_VAL%">
@@ -1489,12 +1465,26 @@ def widget_avis():
       <iframe name="lx_sink" style="display:none;"></iframe>
     </div>
     """
-    html = (html.replace("%ACTION%", _FORM_ACTION)
-                .replace("%ECRAN_ID%", _F_ECRAN).replace("%ECRAN_VAL%", ecran)
-                .replace("%NOM_ID%", _F_NOM).replace("%COMMENT_ID%", _F_COMMENT))
+
+
+@st.dialog("Votre avis sur cet écran")
+def _dialog_avis():
+    """Formulaire d'avis, rendu UNIQUEMENT à l'ouverture du dialog : l'iframe
+    n'est donc plus montée à chaque navigation (gain de perf)."""
+    ecran = ECRAN_LABELS.get(st.session_state.screen, st.session_state.screen)
+    html = (_FEEDBACK_HTML.replace("%ACTION%", _FORM_ACTION)
+            .replace("%ECRAN_ID%", _F_ECRAN).replace("%ECRAN_VAL%", ecran)
+            .replace("%NOM_ID%", _F_NOM).replace("%COMMENT_ID%", _F_COMMENT))
+    components.html(html, height=280)
+
+
+def widget_avis():
+    """Bouton flottant '💬 Donner mon avis'. Au clic, ouvre un dialog contenant le
+    formulaire (soumis côté NAVIGATEUR vers le Google Form -> Google Sheet, méthode
+    fiable ; un envoi serveur est bloqué par Google : 401/403)."""
     with st.container(key="feedback_fab"):
-        with st.popover("💬 Donner mon avis"):
-            components.html(html, height=300)
+        if st.button("💬 Donner mon avis"):
+            _dialog_avis()
 
 
 # ---------- ROUTEUR ----------
