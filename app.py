@@ -344,7 +344,7 @@ def ecran_auth():
             st.markdown(
                 """
                 <div style="font-family:'Fraunces',serif;font-size:34px;font-weight:700;color:#fff;margin-bottom:26px;">Lumen<span style="color:#2D6BFF;">X</span></div>
-                <div style="font-family:'Fraunces',serif;font-size:48px;font-weight:600;color:#fff;line-height:1.12;">Votre trésorerie,<br><span style="font-style:italic;color:#3B82F6;">pilotée en temps<br>réel.</span></div>
+                <div style="font-family:'Fraunces',serif;font-size:48px;font-weight:600;color:#fff;line-height:1.12;">Faites votre métier,<br><span style="font-style:italic;color:#3B82F6;">Nous faisons fructifier votre succès.</span></div>
                 <div style="margin-top:34px;display:flex;flex-direction:column;gap:18px;">
                   <div style="color:#C2C6D2;font-size:18px;"><span style="color:#2D6BFF;">✓</span> Tous vos comptes en un seul endroit</div>
                   <div style="color:#C2C6D2;font-size:18px;"><span style="color:#2D6BFF;">✓</span> Visualisation ordonnée de votre trésorerie</div>
