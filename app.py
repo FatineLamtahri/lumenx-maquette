@@ -1469,32 +1469,30 @@ ecrans = {
     "espace_documents": espace_documents,
     "espace_avenir": espace_avenir,
 }
-def _scroll_haut_si_nouveau_ecran():
-    """Remonte en haut de page uniquement quand on CHANGE d'écran (pas à chaque
-    interaction), pour que chaque nouvelle étape commence en haut."""
-    if st.session_state.get("_dernier_ecran") != st.session_state.screen:
-        st.session_state["_dernier_ecran"] = st.session_state.screen
-        components.html(
-            """
-            <script>
-            try {
-              var w = window.parent, d = w.document;
-              var sels = ['html','body','[data-testid="stMain"]','[data-testid="stAppViewContainer"]',
-                          'section.main','.main','.stApp','.block-container'];
-              function top(){
-                try { w.scrollTo(0, 0); } catch(e){}
-                sels.forEach(function(s){ var el = d.querySelector(s); if (el) { try { el.scrollTop = 0; } catch(e){} } });
-              }
-              top();
-              if (w.requestAnimationFrame) { w.requestAnimationFrame(top); }
-              [50, 150, 300, 600].forEach(function(t){ setTimeout(top, t); });
-            } catch(e){}
-            </script>
-            """,
-            height=0,
-        )
+def _scroll_haut():
+    """Remonte en haut de page au CHANGEMENT d'écran, sans bloquer les clics.
+    Le composant est rendu à CHAQUE run (arbre stable -> pas de clic « avalé »),
+    mais son contenu change avec l'écran : le script ne se ré-exécute donc que
+    lors d'une navigation (pas à chaque sélection sur la même page)."""
+    js = """
+    <script>
+    try {
+      var w = window.parent, d = w.document;
+      function top(){
+        try { w.scrollTo(0, 0); } catch(e){}
+        ['html','body','[data-testid="stMain"]','[data-testid="stAppViewContainer"]','section.main','.stApp']
+          .forEach(function(s){ var el = d.querySelector(s); if (el) { try { el.scrollTop = 0; } catch(e){} } });
+      }
+      top(); if (w.requestAnimationFrame) { w.requestAnimationFrame(top); } setTimeout(top, 120);
+    } catch(e){}
+    </script>
+    <!--ECRAN-->
+    """
+    components.html(js.replace("<!--ECRAN-->", "<!-- " + st.session_state.screen + " -->"), height=0)
 
 # Affiche l'écran courant.
 ecrans[st.session_state.screen]()
 # Bouton d'avis flottant, sur tous les écrans.
 widget_avis()
+# Remonte en haut au changement d'écran (composant stable -> ne bloque pas les clics).
+_scroll_haut()
