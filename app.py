@@ -400,6 +400,13 @@ def ecran_auth():
 # ==================================================================
 # INSCRIPTION — Acceptation des CGU
 # ==================================================================
+# Pages web des documents légaux (hébergées sur GitHub Pages du dépôt).
+# ⚠️ Adapter le nom d'utilisateur/dépôt si besoin, puis activer Pages
+#    (Settings → Pages → Deploy from a branch → main → /root).
+_URL_CGU = "https://fatinelamtahri.github.io/lumenx-maquette/cgu.html"
+_URL_RGPD = "https://fatinelamtahri.github.io/lumenx-maquette/confidentialite.html"
+
+
 def ecran_cgu():
     """Acceptation CGU + RGPD (carte blanche sur fond sombre). Le bouton
     « Continuer » reste désactivé tant que les deux cases ne sont pas cochées."""
@@ -426,8 +433,12 @@ def ecran_cgu():
                 "<div style='color:#777;font-size:14px;margin:8px 0 18px;'>Dernière étape avant de créer votre espace.</div>",
                 unsafe_allow_html=True,
             )
-            cgu = st.checkbox("J'ai lu et j'accepte les conditions générales d'utilisation (CGU).")
-            rgpd = st.checkbox("J'accepte la politique de confidentialité (RGPD).")
+            cgu = st.checkbox(
+                f"J'ai lu et j'accepte les [conditions générales d'utilisation]({_URL_CGU}) (CGU)."
+            )
+            rgpd = st.checkbox(
+                f"J'accepte la [politique de confidentialité (RGPD)]({_URL_RGPD})."
+            )
             st.write("")
             st.button(
                 "Continuer",
