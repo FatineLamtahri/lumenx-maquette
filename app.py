@@ -1477,24 +1477,26 @@ def _scroll_haut_si_nouveau_ecran():
         components.html(
             """
             <script>
-            const w = window.parent, d = w.document;
-            function top(){
-              try{ w.scrollTo(0, 0); }catch(e){}
-              [d.documentElement, d.body,
-               d.querySelector('[data-testid="stMain"]'),
-               d.querySelector('[data-testid="stAppViewContainer"]'),
-               d.querySelector('section.main'),
-               d.querySelector('.stApp')
-              ].forEach(function(el){ if (el) { el.scrollTop = 0; } });
-            }
-            top(); setTimeout(top, 60); setTimeout(top, 220);
+            try {
+              var w = window.parent, d = w.document;
+              var sels = ['html','body','[data-testid="stMain"]','[data-testid="stAppViewContainer"]',
+                          'section.main','.main','.stApp','.block-container'];
+              function top(){
+                try { w.scrollTo(0, 0); } catch(e){}
+                sels.forEach(function(s){ var el = d.querySelector(s); if (el) { try { el.scrollTop = 0; } catch(e){} } });
+              }
+              top();
+              if (w.requestAnimationFrame) { w.requestAnimationFrame(top); }
+              [50, 150, 300, 600].forEach(function(t){ setTimeout(top, t); });
+            } catch(e){}
             </script>
             """,
             height=0,
         )
 
-# Remonte en haut quand on vient de changer d'écran, puis affiche l'écran courant.
-_scroll_haut_si_nouveau_ecran()
+# Affiche l'écran courant.
 ecrans[st.session_state.screen]()
 # Bouton d'avis flottant, sur tous les écrans.
 widget_avis()
+# Remonte en haut de page quand on vient de changer d'écran (après le rendu complet).
+_scroll_haut_si_nouveau_ecran()
