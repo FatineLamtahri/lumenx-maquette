@@ -138,6 +138,73 @@ def reset_societe():
 ETAPES = ["Entreprise", "Dirigeant", "Profil", "Bénéficiaires", "Validation", "Signature", "Comptes"]
 
 
+# Widget "trésorerie" affiché à droite de l'accueil (flux -> horizons -> placement,
+# avec animations SVG). Rendu via components.html (iframe) pour garder les anims.
+WIDGET_TRESORERIE = """
+<style>html,body{margin:0;background:transparent;}</style>
+<div style="background:#0B1220;border:0.5px solid #1E2A3D;border-radius:16px;padding:1.75rem;max-width:600px;font-family:'Segoe UI',Arial,sans-serif;position:relative;overflow:hidden;margin:0 auto">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px">
+    <span style="font-size:13px;color:#7C8AA5">Trésorerie consolidée</span>
+    <span style="background:rgba(29,158,117,0.15);color:#5DCAA5;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px">▲ +4,2 %</span>
+  </div>
+  <svg width="100%" viewBox="0 0 580 250" style="display:block">
+    <defs>
+      <linearGradient id="lnIn2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#3B7DE8" stop-opacity="0.6"/><stop offset="100%" stop-color="#3B7DE8" stop-opacity="0.15"/></linearGradient>
+      <linearGradient id="lnOut2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#6FE0C4" stop-opacity="0.15"/><stop offset="100%" stop-color="#6FE0C4" stop-opacity="0.85"/></linearGradient>
+    </defs>
+    <path d="M150,36 C185,36 190,90 200,110" fill="none" stroke="url(#lnIn2)" stroke-width="2"/>
+    <path d="M150,90 C185,90 195,105 200,115" fill="none" stroke="url(#lnIn2)" stroke-width="2"/>
+    <path d="M150,144 C185,144 190,130 200,120" fill="none" stroke="url(#lnIn2)" stroke-width="2"/>
+    <circle r="3.5" fill="#6FE0C4"><animateMotion dur="2.4s" repeatCount="indefinite" path="M150,36 C185,36 190,90 200,110"/></circle>
+    <circle r="3.5" fill="#6FE0C4"><animateMotion dur="2.8s" repeatCount="indefinite" path="M150,90 C185,90 195,105 200,115"/></circle>
+    <circle r="3.5" fill="#6FE0C4"><animateMotion dur="2.2s" repeatCount="indefinite" path="M150,144 C185,144 190,130 200,120"/></circle>
+    <g>
+      <rect x="10" y="14" width="140" height="44" rx="10" fill="#111B2C" stroke="#1E2A3D"/>
+      <circle cx="30" cy="36" r="9" fill="#1D2C42"/>
+      <path d="M25,39 l4,-8 l3,4 l5,-8" stroke="#5DCAA5" stroke-width="1.3" fill="none"/>
+      <text x="46" y="32" font-size="10" fill="#B8C2D6">Encaissements clients</text>
+      <text x="46" y="46" font-size="11" fill="#FFFFFF" font-weight="600">+620 000 €</text>
+    </g>
+    <g>
+      <rect x="10" y="68" width="140" height="44" rx="10" fill="#111B2C" stroke="#1E2A3D"/>
+      <circle cx="30" cy="90" r="9" fill="#1D2C42"/>
+      <path d="M25,87 l4,8 l3,-4 l5,8" stroke="#D85A30" stroke-width="1.3" fill="none"/>
+      <text x="46" y="86" font-size="10" fill="#B8C2D6">Sorties fournisseurs</text>
+      <text x="46" y="100" font-size="11" fill="#FFFFFF" font-weight="600">-210 000 €</text>
+    </g>
+    <g>
+      <rect x="10" y="122" width="140" height="44" rx="10" fill="#111B2C" stroke="#1E2A3D"/>
+      <circle cx="30" cy="144" r="9" fill="#1D2C42"/>
+      <path d="M25,141 l4,6 l3,-3 l5,6" stroke="#D85A30" stroke-width="1.3" fill="none"/>
+      <text x="46" y="140" font-size="10" fill="#B8C2D6">Salaires &amp; charges</text>
+      <text x="46" y="154" font-size="11" fill="#FFFFFF" font-weight="600">-90 000 €</text>
+    </g>
+    <rect x="200" y="10" width="170" height="215" rx="14" fill="#0F1A2C" stroke="#2A3A52" stroke-width="1.5"/>
+    <text x="285" y="30" text-anchor="middle" font-size="11" fill="#7C8AA5">Trésorerie totale — 1 240 000 €</text>
+    <rect x="212" y="45" width="146" height="48" rx="8" fill="rgba(59,125,232,0.14)" stroke="#3B7DE8" stroke-width="1"/>
+    <text x="222" y="64" font-size="10" fill="#8FB4EE">Court terme</text>
+    <text x="222" y="80" font-size="13" fill="#FFFFFF" font-weight="600">620 000 €</text>
+    <rect x="212" y="101" width="146" height="48" rx="8" fill="rgba(127,119,221,0.16)" stroke="#7F77DD" stroke-width="1"/>
+    <text x="222" y="120" font-size="10" fill="#BDB8F0">Moyen terme</text>
+    <text x="222" y="136" font-size="13" fill="#FFFFFF" font-weight="600">380 000 €</text>
+    <rect x="212" y="157" width="146" height="48" rx="8" fill="rgba(83,74,183,0.2)" stroke="#534AB7" stroke-width="1"/>
+    <text x="222" y="176" font-size="10" fill="#B3ACE8">Long terme</text>
+    <text x="222" y="192" font-size="13" fill="#FFFFFF" font-weight="600">240 000 €</text>
+    <path d="M358,181 C395,181 400,181 418,181" fill="none" stroke="url(#lnOut2)" stroke-width="2.5"/>
+    <circle r="4" fill="#6FE0C4"><animateMotion dur="1.8s" repeatCount="indefinite" path="M358,181 L418,181"/></circle>
+    <rect x="418" y="136" width="152" height="92" rx="14" fill="#0F1A2C" stroke="#5DCAA5" stroke-width="1.5"/>
+    <circle cx="444" cy="160" r="10" fill="rgba(93,202,165,0.15)"/>
+    <path d="M439,163 l3,-7 l3,4 l5,-9" stroke="#5DCAA5" stroke-width="1.4" fill="none"/>
+    <text x="460" y="158" font-size="10" fill="#7C8AA5">Excédent</text>
+    <text x="460" y="171" font-size="10" fill="#7C8AA5">automatiquement</text>
+    <text x="460" y="184" font-size="10" fill="#7C8AA5">investi</text>
+    <text x="494" y="212" text-anchor="middle" font-size="14" fill="#5DCAA5" font-weight="600">240 000 €</text>
+  </svg>
+  <div style="margin-top:14px;font-size:11px;color:#5A6478;text-align:center">Vos flux sont classés par horizon, l'excédent long terme est placé automatiquement</div>
+</div>
+"""
+
+
 # ==================================================================
 # ACCUEIL
 # ==================================================================
@@ -187,41 +254,8 @@ def ecran_accueil():
                 on_click=set_profil, args=("Démo", "dashboard"),
             )
     with col_viz:
-        # --- Encart dashboard (aperçu produit) + encart "Placer mon excédent" ---
-        st.markdown(
-            """
-            <div style="position:relative;max-width:660px;margin:0 auto 24px;">
-              <div style="background:#0E0E16;border:1px solid #20202c;border-radius:20px;padding:36px 36px 30px;box-shadow:0 24px 60px rgba(0,0,0,.45);">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <span style="font-size:13px;color:#8a90a0;">Trésorerie consolidée</span>
-                  <span style="font-size:12px;color:#28c76f;background:rgba(40,199,111,.12);padding:3px 9px;border-radius:20px;">▲ +4,2 %</span>
-                </div>
-                <div style="font-size:42px;font-weight:800;color:#fff;margin:8px 0 2px;">1 240 000 €</div>
-                <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:160px;margin-top:12px;">
-                  <defs><linearGradient id="grad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2D6BFF" stop-opacity="0.35"/><stop offset="1" stop-color="#2D6BFF" stop-opacity="0"/></linearGradient></defs>
-                  <polygon fill="url(#grad)" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 270,34 300,40 320,28 320,110 0,110"/>
-                  <polyline fill="none" stroke="#2D6BFF" stroke-width="2.5" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 270,34 300,40 320,28"/>
-                </svg>
-                <div style="display:flex;gap:10px;margin-top:8px;">
-                  <div style="flex:1;background:#15151f;border-radius:12px;padding:12px;"><div style="font-size:11px;color:#8a90a0;">Encaissements 30 j</div><div style="font-size:16px;font-weight:700;color:#fff;">320 k€</div></div>
-                  <div style="flex:1;background:#15151f;border-radius:12px;padding:12px;"><div style="font-size:11px;color:#8a90a0;">Comptes</div><div style="font-size:16px;font-weight:700;color:#fff;">4</div></div>
-                </div>
-              </div>
-              <div style="position:absolute;left:-22px;bottom:-20px;width:310px;background:#12121c;border:1px solid #2a2a3a;border-radius:18px;padding:20px;box-shadow:0 18px 44px rgba(0,0,0,.55);">
-                <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:#c2c6d2;"><span style="width:20px;height:20px;border-radius:50%;background:#2D6BFF;display:inline-block;"></span> Placer mon excédent</div>
-                <div style="font-size:32px;font-weight:800;color:#fff;margin:10px 0 2px;">250 000 €</div>
-                <div style="display:flex;justify-content:space-between;font-size:11px;color:#8a90a0;margin-bottom:10px;">Disponible <span style="color:#c2c6d2;">500 000 €</span></div>
-                <div style="display:flex;gap:6px;">
-                  <span style="flex:1;text-align:center;font-size:11px;color:#c2c6d2;background:#1c1c2a;border-radius:8px;padding:6px 0;">25%</span>
-                  <span style="flex:1;text-align:center;font-size:11px;color:#fff;background:#2D6BFF;border-radius:8px;padding:6px 0;">50%</span>
-                  <span style="flex:1;text-align:center;font-size:11px;color:#c2c6d2;background:#1c1c2a;border-radius:8px;padding:6px 0;">75%</span>
-                  <span style="flex:1;text-align:center;font-size:11px;color:#c2c6d2;background:#1c1c2a;border-radius:8px;padding:6px 0;">100%</span>
-                </div>
-              </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        # --- Widget trésorerie (flux -> horizons -> placement, animé) ---
+        components.html(WIDGET_TRESORERIE, height=380)
 
     # ===== BANDEAU BAS : footer (logo + liens légaux + copyright) =====
     st.markdown(
