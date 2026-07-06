@@ -69,8 +69,6 @@ st.markdown(
     /* Case « Simuler un compte existant » : garder sur une seule ligne */
     .st-key-simu_existant label p{white-space:nowrap !important;}
     /* --- Bouton d'avis flottant --- */
-    .st-key-feedback_fab{position:fixed;right:28px;bottom:70px;z-index:9999;}
-    .st-key-feedback_fab button{background:#2D6BFF !important;color:#fff !important;border:none !important;font-weight:600 !important;border-radius:24px !important;padding:10px 18px !important;box-shadow:0 6px 18px rgba(0,0,0,.35) !important;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -1432,74 +1430,6 @@ def espace_avenir():
     )
 
 
-# ==================================================================
-# BOUTON D'AVIS — flottant, présent sur tous les écrans.
-# Le formulaire est soumis CÔTÉ NAVIGATEUR (composant HTML) vers le Google Form,
-# qui alimente la Google Sheet. C'est la méthode fiable : Google accepte les
-# envois venant d'un navigateur (un envoi depuis le serveur est bloqué : 401/403).
-# Champs récupérés depuis le lien pré-rempli du formulaire.
-# ==================================================================
-_FORM_ACTION = ("https://docs.google.com/forms/d/e/"
-                "1FAIpQLScmI4n2npD2S4soyTazoU7Cjz1MNcBm5AEk_bmALuGb72M4Eg/formResponse")
-_F_NOM, _F_ECRAN, _F_COMMENT = "entry.1772696514", "entry.306899172", "entry.1362605707"
-# Noms lisibles des écrans (pour la colonne « Écran » de la feuille).
-ECRAN_LABELS = {
-    "accueil": "Accueil", "demo_profil": "Choix profil démo", "auth": "Connexion",
-    "cgu": "CGU / RGPD", "onb_societe": "Onboarding – Entreprise",
-    "onb_representant": "Onboarding – Dirigeant", "onb_secteur": "Onboarding – Secteur d'activité",
-    "onb_investisseur": "Onboarding – Profil S1 (1/2)",
-    "onb_profil1b": "Onboarding – Profil S1 (2/2)",
-    "onb_profil2a": "Onboarding – Profil S2 (1/3)",
-    "onb_profil2b": "Onboarding – Profil S2 (2/3)",
-    "onb_profil2c": "Onboarding – Profil S2 (3/3)",
-    "onb_profil3a": "Onboarding – Profil S3 (1/2)",
-    "onb_profil3b": "Onboarding – Profil S3 (2/2)",
-    "onb_profil4": "Onboarding – Profil S4 (objectifs)",
-    "onb_ubo": "Onboarding – Bénéficiaires", "onb_validation": "Onboarding – Validation",
-    "onb_signature": "Onboarding – Signature", "onb_banque": "Onboarding – Comptes",
-    "dashboard": "Tableau de bord", "espace_profil": "Mon profil",
-    "espace_documents": "Documents", "espace_avenir": "Rubrique à venir",
-}
-
-# Gabarit HTML du formulaire d'avis (défini une seule fois au niveau du module).
-_FEEDBACK_HTML = """
-    <div style="font-family:Inter,Segoe UI,sans-serif;color:#e8ecf4;">
-      <form id="lx_form" action="%ACTION%" method="POST" target="lx_sink"
-            onsubmit="setTimeout(function(){document.getElementById('lx_ok').style.display='block';document.getElementById('lx_form').reset();},400);">
-        <input type="hidden" name="%ECRAN_ID%" value="%ECRAN_VAL%">
-        <input name="%NOM_ID%" placeholder="Votre nom (optionnel)"
-               style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:9px 11px;border-radius:8px;border:1px solid #2c456f;background:#15151f;color:#fff;font-size:14px;">
-        <textarea name="%COMMENT_ID%" required rows="4" placeholder="Ce qui vous plaît, ce qui cloche, vos idées…"
-               style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:9px 11px;border-radius:8px;border:1px solid #2c456f;background:#15151f;color:#fff;font-size:14px;resize:vertical;"></textarea>
-        <button type="submit"
-               style="background:#2D6BFF;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-weight:600;font-size:14px;cursor:pointer;">Envoyer</button>
-      </form>
-      <div id="lx_ok" style="display:none;color:#28c76f;margin-top:8px;font-size:14px;">Merci, votre avis est envoyé ✅</div>
-      <iframe name="lx_sink" style="display:none;"></iframe>
-    </div>
-    """
-
-
-@st.dialog("Votre avis sur cet écran")
-def _dialog_avis():
-    """Formulaire d'avis, rendu UNIQUEMENT à l'ouverture du dialog : l'iframe
-    n'est donc plus montée à chaque navigation (gain de perf)."""
-    ecran = ECRAN_LABELS.get(st.session_state.screen, st.session_state.screen)
-    html = (_FEEDBACK_HTML.replace("%ACTION%", _FORM_ACTION)
-            .replace("%ECRAN_ID%", _F_ECRAN).replace("%ECRAN_VAL%", ecran)
-            .replace("%NOM_ID%", _F_NOM).replace("%COMMENT_ID%", _F_COMMENT))
-    components.html(html, height=280)
-
-
-def widget_avis():
-    """Bouton flottant '💬 Donner mon avis'. Au clic, ouvre un dialog contenant le
-    formulaire (soumis côté NAVIGATEUR vers le Google Form -> Google Sheet, méthode
-    fiable ; un envoi serveur est bloqué par Google : 401/403)."""
-    with st.container(key="feedback_fab"):
-        if st.button("💬 Donner mon avis"):
-            _dialog_avis()
-
-
 # ---------- ROUTEUR ----------
 # Associe chaque nom d'écran à sa fonction. La dernière ligne exécute l'écran
 # dont le nom est dans st.session_state["screen"] (mis à jour par les boutons).
@@ -1530,5 +1460,3 @@ ecrans = {
 }
 # Affiche l'écran courant.
 ecrans[st.session_state.screen]()
-# Bouton d'avis flottant, sur tous les écrans.
-widget_avis()
