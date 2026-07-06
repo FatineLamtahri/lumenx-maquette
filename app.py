@@ -1498,5 +1498,3 @@ def _scroll_haut_si_nouveau_ecran():
 ecrans[st.session_state.screen]()
 # Bouton d'avis flottant, sur tous les écrans.
 widget_avis()
-# Remonte en haut de page quand on vient de changer d'écran (après le rendu complet).
-_scroll_haut_si_nouveau_ecran()
