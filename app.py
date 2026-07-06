@@ -422,7 +422,7 @@ def ecran_cgu():
         """,
         unsafe_allow_html=True,
     )
-    _, centre, _ = st.columns([1, 1.3, 1])
+    _, centre, _ = st.columns([1, 0.9, 1])
     with centre:
         st.button("← Retour", key="cgu_retour", on_click=go, args=("auth",))
         with st.container(key="cgu_card"):
