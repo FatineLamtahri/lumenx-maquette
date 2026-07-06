@@ -1468,21 +1468,6 @@ ecrans = {
     "espace_documents": espace_documents,
     "espace_avenir": espace_avenir,
 }
-# Remonte en haut de page dès qu'on change d'écran (scroll natif, sans lag).
-# On ne le déclenche QUE lors d'un vrai changement d'écran, pour ne pas rejouer
-# le scroll (et le petit iframe) à chaque interaction interne à l'écran.
-if st.session_state.get("_dernier_ecran") != st.session_state.screen:
-    st.session_state["_dernier_ecran"] = st.session_state.screen
-    components.html(
-        "<script>"
-        "const d = window.parent.document;"
-        "window.parent.scrollTo(0, 0);"
-        "const m = d.querySelector('section.main') || d.querySelector('[data-testid=\"stMain\"]');"
-        "if (m) { m.scrollTo(0, 0); }"
-        "</script>",
-        height=0,
-    )
-
 # Affiche l'écran courant.
 ecrans[st.session_state.screen]()
 # Bouton d'avis flottant, sur tous les écrans.
