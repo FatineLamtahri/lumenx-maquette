@@ -1475,9 +1475,21 @@ def _scroll_haut_si_nouveau_ecran():
     if st.session_state.get("_dernier_ecran") != st.session_state.screen:
         st.session_state["_dernier_ecran"] = st.session_state.screen
         components.html(
-            "<script>const d=window.parent.document;window.parent.scrollTo(0,0);"
-            "const m=d.querySelector('[data-testid=\"stMain\"]')||d.querySelector('section.main');"
-            "if(m){m.scrollTo(0,0);}</script>",
+            """
+            <script>
+            const w = window.parent, d = w.document;
+            function top(){
+              try{ w.scrollTo(0, 0); }catch(e){}
+              [d.documentElement, d.body,
+               d.querySelector('[data-testid="stMain"]'),
+               d.querySelector('[data-testid="stAppViewContainer"]'),
+               d.querySelector('section.main'),
+               d.querySelector('.stApp')
+              ].forEach(function(el){ if (el) { el.scrollTop = 0; } });
+            }
+            top(); setTimeout(top, 60); setTimeout(top, 220);
+            </script>
+            """,
             height=0,
         )
 
