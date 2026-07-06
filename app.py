@@ -1470,29 +1470,40 @@ ecrans = {
     "espace_avenir": espace_avenir,
 }
 def _scroll_haut():
-    """Remonte en haut de page au CHANGEMENT d'écran, sans bloquer les clics.
-    Le composant est rendu à CHAQUE run (arbre stable -> pas de clic « avalé »),
-    mais son contenu change avec l'écran : le script ne se ré-exécute donc que
-    lors d'une navigation (pas à chaque sélection sur la même page)."""
-    js = """
-    <script>
-    try {
-      var w = window.parent, d = w.document;
-      function top(){
-        try { w.scrollTo(0, 0); } catch(e){}
-        ['html','body','[data-testid="stMain"]','[data-testid="stAppViewContainer"]','section.main','.stApp']
-          .forEach(function(s){ var el = d.querySelector(s); if (el) { try { el.scrollTop = 0; } catch(e){} } });
-      }
-      top(); if (w.requestAnimationFrame) { w.requestAnimationFrame(top); } setTimeout(top, 120);
-    } catch(e){}
-    </script>
-    <!--ECRAN-->
-    """
-    components.html(js.replace("<!--ECRAN-->", "<!-- " + st.session_state.screen + " -->"), height=0)
+    """Remonte en haut au changement d'écran SANS bloquer les clics.
+
+    Astuce : l'iframe (seul moyen d'exécuter du JS) a un contenu CONSTANT, donc
+    Streamlit ne la recharge jamais entre les runs -> elle ne peut pas « avaler »
+    le clic suivant. Elle SURVEILLE (polling) un marqueur normal, mis à jour à
+    chaque run avec le nom de l'écran, et remonte en haut quand ce nom change."""
+    # Marqueur (élément normal, pas d'iframe -> aucun impact sur les clics).
+    st.markdown(
+        f"<div id='_cur_screen' data-screen='{st.session_state.screen}' style='display:none'></div>",
+        unsafe_allow_html=True,
+    )
+    # Iframe au contenu FIXE : chargée une seule fois, surveille le marqueur.
+    components.html(
+        """
+        <script>
+        try {
+          var w = window.parent, d = w.document, last = null;
+          function scr(){ var e = d.getElementById('_cur_screen'); return e ? e.getAttribute('data-screen') : null; }
+          function top(){
+            try { w.scrollTo(0, 0); } catch(e){}
+            ['html','body','[data-testid="stMain"]','[data-testid="stAppViewContainer"]','section.main','.stApp']
+              .forEach(function(s){ var el = d.querySelector(s); if (el) { try { el.scrollTop = 0; } catch(e){} } });
+          }
+          last = scr();
+          setInterval(function(){ var s = scr(); if (s !== null && s !== last) { last = s; top(); } }, 150);
+        } catch(e){}
+        </script>
+        """,
+        height=0,
+    )
 
 # Affiche l'écran courant.
 ecrans[st.session_state.screen]()
 # Bouton d'avis flottant, sur tous les écrans.
 widget_avis()
-# Remonte en haut au changement d'écran (composant stable -> ne bloque pas les clics).
+# Remonte en haut au changement d'écran (iframe fixe qui surveille un marqueur).
 _scroll_haut()
