@@ -831,25 +831,34 @@ def ecran_onb_banque():
     with col:
         encadre("🧪 Pour le MVP, la connexion se fait sur un faux compte bancaire "
                 "(données fictives).", "info")
+        # Tuile dessinée en HTML + bouton transparent posé par-dessus (cliquable).
         st.markdown(
             "<style>"
-            ".block-container .st-key-tuile_compte button{height:200px !important;background:transparent !important;"
-            "border:1.5px dashed #2D6BFF !important;border-radius:16px !important;box-shadow:none !important;"
-            "display:flex !important;flex-direction:column !important;align-items:center !important;"
-            "justify-content:center !important;gap:14px !important;}"
-            ".block-container .st-key-tuile_compte button:hover{background:rgba(45,107,255,0.06) !important;}"
-            ".block-container .st-key-tuile_compte button div,.block-container .st-key-tuile_compte button p{"
-            "color:#dbe2ef !important;font-weight:600 !important;font-size:15px !important;text-align:center !important;}"
-            ".block-container .st-key-tuile_compte button [data-testid='stIconMaterial']{"
-            "font-size:48px !important;color:#2D6BFF !important;}"
+            ".st-key-tuile_wrap{position:relative;max-width:320px;}"
+            ".st-key-tuile_wrap .st-key-tuile_btn{position:absolute;inset:0;z-index:3;}"
+            ".st-key-tuile_wrap .st-key-tuile_btn button{width:100% !important;height:100% !important;"
+            "min-height:200px !important;background:transparent !important;border:none !important;"
+            "box-shadow:none !important;opacity:0 !important;cursor:pointer !important;}"
+            ".st-key-tuile_wrap:hover .tuile-visuel{background:rgba(45,107,255,0.06) !important;}"
             "</style>",
             unsafe_allow_html=True,
         )
-        tcol, _ = st.columns(2)
-        with tcol:
-            st.button("Connexion aux comptes bancaires", key="tuile_compte",
-                      icon=":material/add_circle:", use_container_width=True,
-                      on_click=set_profil, args=("Démo", "dashboard"))
+        with st.container(key="tuile_wrap"):
+            st.markdown(
+                "<div class='tuile-visuel' style='border:1.5px dashed #2D6BFF;border-radius:16px;height:200px;"
+                "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:background .15s;'>"
+                "<svg width='54' height='54' viewBox='0 0 54 54'>"
+                "<circle cx='27' cy='27' r='25' fill='none' stroke='#2D6BFF' stroke-width='2.5'/>"
+                "<line x1='27' y1='16' x2='27' y2='38' stroke='#2D6BFF' stroke-width='3' stroke-linecap='round'/>"
+                "<line x1='16' y1='27' x2='38' y2='27' stroke='#2D6BFF' stroke-width='3' stroke-linecap='round'/></svg>"
+                "<div style='color:#dbe2ef;font-weight:600;font-size:15px;text-align:center;line-height:1.35;'>"
+                "Connexion aux comptes<br>bancaires</div></div>",
+                unsafe_allow_html=True,
+            )
+            with st.container(key="tuile_btn"):
+                st.button("Connexion aux comptes bancaires", key="tuile_compte",
+                          use_container_width=True,
+                          on_click=set_profil, args=("Démo", "dashboard"))
 
 
 # ==================================================================
