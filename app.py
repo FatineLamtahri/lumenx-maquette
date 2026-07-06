@@ -39,10 +39,10 @@ st.markdown(
     """
     <style>
     /* Polices de marque chargées depuis Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,600&family=Manrope:wght@400;500;600;700;800&display=swap');
-    /* Manrope = police par défaut du corps de texte sur tout l'app */
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,600&family=Poppins:wght@400;500;600;700;800&display=swap');
+    /* Poppins = police par défaut du corps de texte sur tout l'app */
     html, body, [class*="css"], .stApp, p, div, span, label, button, input, select, textarea {
-        font-family: 'Manrope', sans-serif;
+        font-family: 'Poppins', sans-serif;
     }
     /* Fraunces (serif) réservée aux titres */
     h1, h2, h3 { font-family: 'Fraunces', serif; }
@@ -647,7 +647,9 @@ def _cartes_profil_css():
     st.markdown(
         "<style>[class*='qcard']{background:rgba(45,107,255,0.06) !important;"
         "border:1px solid rgba(45,107,255,0.45) !important;border-radius:14px !important;"
-        "padding:6px 20px 12px !important;margin-bottom:14px !important;}</style>",
+        "padding:10px 22px 16px !important;margin-bottom:16px !important;}"
+        "[class*='qcard'] div[role='radiogroup'] label{margin:9px 0 !important;}"
+        "[class*='qcard'] div[role='radiogroup']{gap:6px !important;}</style>",
         unsafe_allow_html=True,
     )
 
