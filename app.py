@@ -833,20 +833,22 @@ def ecran_onb_banque():
                 "(données fictives).", "info")
         st.markdown(
             "<style>"
-            ".st-key-tuile_compte button{height:180px !important;background:rgba(45,107,255,0.05) !important;"
+            ".block-container .st-key-tuile_compte button{height:200px !important;background:transparent !important;"
             "border:1.5px dashed #2D6BFF !important;border-radius:16px !important;box-shadow:none !important;"
             "display:flex !important;flex-direction:column !important;align-items:center !important;"
-            "justify-content:center !important;gap:12px !important;}"
-            ".st-key-tuile_compte button div, .st-key-tuile_compte button p{color:#dbe2ef !important;"
-            "font-weight:600 !important;font-size:15px !important;text-align:center !important;}"
-            ".st-key-tuile_compte button [data-testid='stIconMaterial']{font-size:42px !important;color:#2D6BFF !important;}"
+            "justify-content:center !important;gap:14px !important;}"
+            ".block-container .st-key-tuile_compte button:hover{background:rgba(45,107,255,0.06) !important;}"
+            ".block-container .st-key-tuile_compte button div,.block-container .st-key-tuile_compte button p{"
+            "color:#dbe2ef !important;font-weight:600 !important;font-size:15px !important;text-align:center !important;}"
+            ".block-container .st-key-tuile_compte button [data-testid='stIconMaterial']{"
+            "font-size:48px !important;color:#2D6BFF !important;}"
             "</style>",
             unsafe_allow_html=True,
         )
         tcol, _ = st.columns(2)
         with tcol:
             st.button("Connexion aux comptes bancaires", key="tuile_compte",
-                      icon=":material/add:", use_container_width=True,
+                      icon=":material/add_circle:", use_container_width=True,
                       on_click=set_profil, args=("Démo", "dashboard"))
 
 
@@ -1458,7 +1460,20 @@ ecrans = {
     "espace_documents": espace_documents,
     "espace_avenir": espace_avenir,
 }
-# Affiche l'écran courant.
+def _scroll_haut_si_nouveau_ecran():
+    """Remonte en haut de page uniquement quand on CHANGE d'écran (pas à chaque
+    interaction), pour que chaque nouvelle étape commence en haut."""
+    if st.session_state.get("_dernier_ecran") != st.session_state.screen:
+        st.session_state["_dernier_ecran"] = st.session_state.screen
+        components.html(
+            "<script>const d=window.parent.document;window.parent.scrollTo(0,0);"
+            "const m=d.querySelector('[data-testid=\"stMain\"]')||d.querySelector('section.main');"
+            "if(m){m.scrollTo(0,0);}</script>",
+            height=0,
+        )
+
+# Remonte en haut quand on vient de changer d'écran, puis affiche l'écran courant.
+_scroll_haut_si_nouveau_ecran()
 ecrans[st.session_state.screen]()
 # Bouton d'avis flottant, sur tous les écrans.
 widget_avis()
