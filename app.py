@@ -688,12 +688,12 @@ def _barre_progression(section, debut, fin, total=12):
 
 
 def ecran_onb_investisseur():
-    """Profil — sous-étape 1/4 : situation de trésorerie actuelle."""
+    """Profil — Section 1/4 (écran 1/2) : visibilité & trésorerie dormante."""
     stepper_panel(3)
     _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_secteur",))
     titre_section("LumenX et vous", "Où en est votre trésorerie aujourd'hui ?")
-    _barre_progression(1, 1, 3)
+    _barre_progression(1, 1, 2)
     col, _ = st.columns([2, 0.5])
     with col:
         _question(
@@ -708,6 +708,18 @@ def ecran_onb_investisseur():
             ["Moins de 50 k€", "50 – 150 k€", "150 – 500 k€", "Plus de 500 k€", "Je ne sais pas"],
             "p1_dormante",
         )
+        _btn_continuer("onb_profil1b")
+
+
+def ecran_onb_profil1b():
+    """Profil — Section 1/4 (écran 2/2) : coussin de sécurité."""
+    stepper_panel(3)
+    _cartes_profil_css()
+    st.button("← Retour", on_click=go, args=("onb_investisseur",))
+    titre_section("LumenX et vous", "Où en est votre trésorerie aujourd'hui ?")
+    _barre_progression(1, 3, 3)
+    col, _ = st.columns([2, 0.5])
+    with col:
         _question(
             "Connaissez-vous votre « coussin de sécurité » minimum, le niveau de trésorerie "
             "(souvent exprimé en mois de charges fixes) sous lequel vous ne voulez jamais descendre ?",
@@ -715,16 +727,16 @@ def ecran_onb_investisseur():
              "Je ne l'ai pas encore défini"],
             "p1_coussin",
         )
-        _btn_continuer("onb_profil2")
+        _btn_continuer("onb_profil2a")
 
 
-def ecran_onb_profil2():
-    """Profil — sous-étape 2/4 : profil investisseur."""
+def ecran_onb_profil2a():
+    """Profil — Section 2/4 (écran 1/3) : représentation & tolérance au risque."""
     stepper_panel(3)
     _cartes_profil_css()
-    st.button("← Retour", on_click=go, args=("onb_investisseur",))
+    st.button("← Retour", on_click=go, args=("onb_profil1b",))
     titre_section("LumenX et vous", "Quel investisseur êtes-vous ?")
-    _barre_progression(2, 4, 8)
+    _barre_progression(2, 4, 5)
     col, _ = st.columns([2, 0.5])
     with col:
         _question(
@@ -741,6 +753,18 @@ def ecran_onb_profil2():
             ],
             "p2_tolerance",
         )
+        _btn_continuer("onb_profil2b")
+
+
+def ecran_onb_profil2b():
+    """Profil — Section 2/4 (écran 2/3) : expérience & satisfaction."""
+    stepper_panel(3)
+    _cartes_profil_css()
+    st.button("← Retour", on_click=go, args=("onb_profil2a",))
+    titre_section("LumenX et vous", "Quel investisseur êtes-vous ?")
+    _barre_progression(2, 6, 7)
+    col, _ = st.columns([2, 0.5])
+    with col:
         _question(
             "Quelle est votre expérience des placements financiers ?",
             [
@@ -758,6 +782,18 @@ def ecran_onb_profil2():
                 "passées ? (0 = très insatisfait, 10 = très satisfait)",
                 0, 10, 5, disabled=sans_objet, key="p2_satisf",
             )
+        _btn_continuer("onb_profil2c")
+
+
+def ecran_onb_profil2c():
+    """Profil — Section 2/4 (écran 3/3) : blocage vs flexibilité."""
+    stepper_panel(3)
+    _cartes_profil_css()
+    st.button("← Retour", on_click=go, args=("onb_profil2b",))
+    titre_section("LumenX et vous", "Quel investisseur êtes-vous ?")
+    _barre_progression(2, 8, 8)
+    col, _ = st.columns([2, 0.5])
+    with col:
         _question(
             "Préférez-vous bloquer des fonds sur une durée connue à l'avance pour un rendement "
             "garanti, ou garder de la flexibilité quitte à accepter un taux variable ?",
@@ -768,16 +804,16 @@ def ecran_onb_profil2():
             ],
             "p2_blocage",
         )
-        _btn_continuer("onb_profil3")
+        _btn_continuer("onb_profil3a")
 
 
-def ecran_onb_profil3():
-    """Profil — sous-étape 3/4 : contraintes."""
+def ecran_onb_profil3a():
+    """Profil — Section 3/4 (écran 1/2) : liquidité & suivi."""
     stepper_panel(3)
     _cartes_profil_css()
-    st.button("← Retour", on_click=go, args=("onb_profil2",))
+    st.button("← Retour", on_click=go, args=("onb_profil2c",))
     titre_section("LumenX et vous", "Sous quelles contraintes opérez-vous ?")
-    _barre_progression(3, 9, 11)
+    _barre_progression(3, 9, 10)
     col, _ = st.columns([2, 0.5])
     with col:
         _question(
@@ -791,6 +827,18 @@ def ecran_onb_profil3():
              "Une fois par an ou moins"],
             "p3_temps",
         )
+        _btn_continuer("onb_profil3b")
+
+
+def ecran_onb_profil3b():
+    """Profil — Section 3/4 (écran 2/2) : critères extra-financiers."""
+    stepper_panel(3)
+    _cartes_profil_css()
+    st.button("← Retour", on_click=go, args=("onb_profil3a",))
+    titre_section("LumenX et vous", "Sous quelles contraintes opérez-vous ?")
+    _barre_progression(3, 11, 11)
+    col, _ = st.columns([2, 0.5])
+    with col:
         _question(
             "Avez-vous des critères extra-financiers importants, par exemple investir dans des "
             "fonds responsables (ISR/ESG) ou soutenir l'économie locale ?",
@@ -801,10 +849,10 @@ def ecran_onb_profil3():
 
 
 def ecran_onb_profil4():
-    """Profil — sous-étape 4/4 : objectifs (choix multiple)."""
+    """Profil — Section 4/4 : objectifs (choix multiple)."""
     stepper_panel(3)
     _cartes_profil_css()
-    st.button("← Retour", on_click=go, args=("onb_profil3",))
+    st.button("← Retour", on_click=go, args=("onb_profil3b",))
     titre_section("LumenX et vous", "Quels sont vos objectifs financiers ?")
     _barre_progression(4, 12, 12)
     col, _ = st.columns([2, 0.5])
@@ -1398,9 +1446,14 @@ ECRAN_LABELS = {
     "accueil": "Accueil", "demo_profil": "Choix profil démo", "auth": "Connexion",
     "cgu": "CGU / RGPD", "onb_societe": "Onboarding – Entreprise",
     "onb_representant": "Onboarding – Dirigeant", "onb_secteur": "Onboarding – Secteur d'activité",
-    "onb_investisseur": "Onboarding – Profil 1/4",
-    "onb_profil2": "Onboarding – Profil 2/4", "onb_profil3": "Onboarding – Profil 3/4",
-    "onb_profil4": "Onboarding – Profil 4/4",
+    "onb_investisseur": "Onboarding – Profil S1 (1/2)",
+    "onb_profil1b": "Onboarding – Profil S1 (2/2)",
+    "onb_profil2a": "Onboarding – Profil S2 (1/3)",
+    "onb_profil2b": "Onboarding – Profil S2 (2/3)",
+    "onb_profil2c": "Onboarding – Profil S2 (3/3)",
+    "onb_profil3a": "Onboarding – Profil S3 (1/2)",
+    "onb_profil3b": "Onboarding – Profil S3 (2/2)",
+    "onb_profil4": "Onboarding – Profil S4 (objectifs)",
     "onb_ubo": "Onboarding – Bénéficiaires", "onb_validation": "Onboarding – Validation",
     "onb_signature": "Onboarding – Signature", "onb_banque": "Onboarding – Comptes",
     "dashboard": "Tableau de bord", "espace_profil": "Mon profil",
@@ -1456,8 +1509,12 @@ ecrans = {
     "onb_representant": ecran_onb_representant,
     "onb_secteur": ecran_onb_secteur,
     "onb_investisseur": ecran_onb_investisseur,
-    "onb_profil2": ecran_onb_profil2,
-    "onb_profil3": ecran_onb_profil3,
+    "onb_profil1b": ecran_onb_profil1b,
+    "onb_profil2a": ecran_onb_profil2a,
+    "onb_profil2b": ecran_onb_profil2b,
+    "onb_profil2c": ecran_onb_profil2c,
+    "onb_profil3a": ecran_onb_profil3a,
+    "onb_profil3b": ecran_onb_profil3b,
     "onb_profil4": ecran_onb_profil4,
     "onb_ubo": ecran_onb_ubo,
     "onb_validation": ecran_onb_validation,
