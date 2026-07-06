@@ -142,7 +142,7 @@ ETAPES = ["Entreprise", "Dirigeant", "Profil", "Bénéficiaires", "Validation", 
 # avec animations SVG). Rendu via components.html (iframe) pour garder les anims.
 WIDGET_TRESORERIE = """
 <style>html,body{margin:0;background:transparent;}</style>
-<div style="background:#0B1220;border:0.5px solid #1E2A3D;border-radius:16px;padding:1.75rem;max-width:600px;font-family:'Segoe UI',Arial,sans-serif;position:relative;overflow:hidden;margin:0 auto">
+<div style="background:#0B1220;border:0.5px solid #1E2A3D;border-radius:16px;padding:1.75rem;max-width:720px;font-family:'Segoe UI',Arial,sans-serif;position:relative;overflow:hidden;margin:0 auto">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px">
     <span style="font-size:13px;color:#7C8AA5">Trésorerie consolidée</span>
     <span style="background:rgba(29,158,117,0.15);color:#5DCAA5;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px">▲ +4,2 %</span>
@@ -227,22 +227,22 @@ def ecran_accueil():
         unsafe_allow_html=True,
     )
     # ===== CONTENU CENTRAL : encart texte (gauche) + encart dashboard (droite) =====
-    _, col_text, col_viz, _ = st.columns([0.4, 1.5, 1, 0.4], vertical_alignment="center")
+    _, col_text, col_viz, _ = st.columns([0.4, 1.5, 1.3, 0.2], vertical_alignment="center")
     with col_text:
         # --- Encart texte : titre + accroche ---
         st.markdown(
             """
             <h1 style="font-family:'Fraunces',serif;font-size:52px;line-height:1.06;margin:0;font-weight:600;color:#fff;">Faites votre métier<br><span style="color:#3B82F6;font-size:40px;font-style:italic;">Nous faisons fructifier votre succès</span></h1>
-            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:600px;">Votre priorité est de développer votre activité, d'innover et de satisfaire vos clients.</p>
-            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:600px;">Le notre est de .... ?.</p>
-            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:600px;">LumenX est la plateforme qui vous aide à optimiser l'argent de votre entreprise.</p>
-            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:600px;">Laisser votre trésorerie dormir sur un compte courant classique n'est pas un choix de sécurité, c'est une perte sèche.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:4px 0;max-width:600px;">Votre priorité est de développer votre activité, d'innover et de satisfaire vos clients.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:4px 0;max-width:600px;">Le notre est de .... ?.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:4px 0;max-width:600px;">LumenX est la plateforme qui vous aide à optimiser l'argent de votre entreprise.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:4px 0;max-width:600px;">Laisser votre trésorerie dormir sur un compte courant classique n'est pas un choix de sécurité, c'est une perte sèche.</p>
             <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:0 0 28px;max-width:600px;">Ne choisissez plus entre gérer votre entreprise et optimiser vos finances. Faites les deux!.</p>
             """,
             unsafe_allow_html=True,
         )
-        # --- Encart de connexion : boutons + mention sécurité ---
-        bcol, _ = st.columns(2)
+        # --- Encart de connexion : boutons + mention sécurité (centrés) ---
+        _, bcol, _ = st.columns([1, 2, 1])
         with bcol:
             st.button(
                 "Se connecter / S'inscrire",
@@ -258,7 +258,7 @@ def ecran_accueil():
             )
     with col_viz:
         # --- Widget trésorerie (flux -> horizons -> placement, animé) ---
-        components.html(WIDGET_TRESORERIE, height=380)
+        components.html(WIDGET_TRESORERIE, height=430)
 
     # ===== BANDEAU BAS : footer (logo + liens légaux + copyright) =====
     st.markdown(
