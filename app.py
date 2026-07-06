@@ -437,7 +437,7 @@ def ecran_cgu():
                 f"J'ai lu et j'accepte les [conditions générales d'utilisation]({_URL_CGU}) (CGU)."
             )
             rgpd = st.checkbox(
-                f"J'accepte la [politique de confidentialité (RGPD)]({_URL_RGPD})."
+                f"J'accepte la [politique de confidentialité]({_URL_RGPD}) (RGPD)."
             )
             st.write("")
             st.button(
