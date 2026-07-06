@@ -667,14 +667,27 @@ def _btn_continuer(cible):
         st.button("Continuer", type="primary", use_container_width=True,
                   on_click=go, args=(cible,))
 
+def _barre_progression(section, debut, fin, total=12):
+    """Barre de progression basée sur le nombre de questions (façon typeform)."""
+    pct = int(fin / total * 100)
+    libelle = f"Question {debut}" if debut == fin else f"Questions {debut} à {fin}"
+    st.markdown(
+        f"<div style='max-width:900px;margin:0 0 22px;'>"
+        f"<div style='display:flex;justify-content:space-between;font-size:12px;color:#7e89a8;margin-bottom:6px;'>"
+        f"<span>Section {section} sur 4</span><span>{libelle} sur {total}</span></div>"
+        f"<div style='height:6px;background:#1c2740;border-radius:3px;overflow:hidden;'>"
+        f"<div style='height:100%;width:{pct}%;background:#2D6BFF;border-radius:3px;'></div></div></div>",
+        unsafe_allow_html=True,
+    )
+
 
 def ecran_onb_investisseur():
     """Profil — sous-étape 1/4 : situation de trésorerie actuelle."""
     stepper_panel(2)
     _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_representant",))
-    titre_section("LumenX et vous",
-                  "Section 1 sur 4 — Où en est votre trésorerie aujourd'hui ?")
+    titre_section("LumenX et vous", "Où en est votre trésorerie aujourd'hui ?")
+    _barre_progression(1, 1, 3)
     col, _ = st.columns([2, 0.5])
     with col:
         _question(
@@ -704,8 +717,8 @@ def ecran_onb_profil2():
     stepper_panel(2)
     _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_investisseur",))
-    titre_section("LumenX et vous",
-                  "Section 2 sur 4 — Quel investisseur êtes-vous ?")
+    titre_section("LumenX et vous", "Quel investisseur êtes-vous ?")
+    _barre_progression(2, 4, 8)
     col, _ = st.columns([2, 0.5])
     with col:
         _question(
@@ -757,8 +770,8 @@ def ecran_onb_profil3():
     stepper_panel(2)
     _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil2",))
-    titre_section("LumenX et vous",
-                  "Section 3 sur 4 — Sous quelles contraintes opérez-vous ?")
+    titre_section("LumenX et vous", "Sous quelles contraintes opérez-vous ?")
+    _barre_progression(3, 9, 11)
     col, _ = st.columns([2, 0.5])
     with col:
         _question(
@@ -786,8 +799,8 @@ def ecran_onb_profil4():
     stepper_panel(2)
     _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil3",))
-    titre_section("LumenX et vous",
-                  "Section 4 sur 4 — Quels sont vos objectifs financiers ?")
+    titre_section("LumenX et vous", "Quels sont vos objectifs financiers ?")
+    _barre_progression(4, 12, 12)
     col, _ = st.columns([2, 0.5])
     with col:
         with st.container(key="qcard_objectifs"):
