@@ -241,8 +241,8 @@ def ecran_accueil():
             """,
             unsafe_allow_html=True,
         )
-        # --- Encart de connexion : boutons + mention sécurité (centrés) ---
-        _, bcol, _ = st.columns([1, 2, 1])
+        # --- Encart de connexion : boutons + mention sécurité (alignés à gauche) ---
+        bcol, _ = st.columns([2, 1])
         with bcol:
             st.button(
                 "Se connecter / S'inscrire",
