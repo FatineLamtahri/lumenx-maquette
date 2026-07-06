@@ -135,7 +135,7 @@ def reset_societe():
 
 # ---------- Étapes du parcours de création d'espace ----------
 # Utilisé par stepper_panel() (panneau vertical à gauche des écrans d'onboarding).
-ETAPES = ["Entreprise", "Dirigeant", "Objectifs", "Bénéficiaires", "Validation", "Signature", "Comptes"]
+ETAPES = ["Entreprise", "Dirigeant", "Secteur d'activité", "Objectifs", "Bénéficiaires", "Validation", "Signature", "Comptes"]
 
 
 # Widget "trésorerie" affiché à droite de l'accueil (flux -> horizons -> placement,
@@ -617,22 +617,29 @@ def ecran_onb_representant():
         st.button(
             "Continuer",
             type="primary", use_container_width=True,
-            on_click=go, args=("onb_investisseur",),
+            on_click=go, args=("onb_secteur",),
         )
 
 
-# Étapes 4-6 (Bénéficiaires, Validation, Signature) : non gérées dans le MVP.
+# Étape « Secteur d'activité » (index 2) : non gérée dans le MVP, insérée après
+# Dirigeant. Elle décale toutes les étapes suivantes d'un cran.
+def ecran_onb_secteur():
+    ecran_grise(2, "Secteur d'activité", ["Secteur d'activité (liste à venir)"],
+                "onb_representant", "onb_investisseur")
+
+
+# Étapes (Bénéficiaires, Validation, Signature) : non gérées dans le MVP.
 # Elles réutilisent toutes le même gabarit grisé `ecran_grise`.
 def ecran_onb_ubo():
-    ecran_grise(3, "Bénéficiaires effectifs", [], "onb_investisseur", "onb_validation")
+    ecran_grise(4, "Bénéficiaires effectifs", [], "onb_profil4", "onb_validation")
 
 
 def ecran_onb_validation():
-    ecran_grise(4, "Validation du dossier", [], "onb_ubo", "onb_signature")
+    ecran_grise(5, "Validation du dossier", [], "onb_ubo", "onb_signature")
 
 
 def ecran_onb_signature():
-    ecran_grise(5, "Signature", [], "onb_validation", "onb_banque")
+    ecran_grise(6, "Signature", [], "onb_validation", "onb_banque")
 
 
 # ==================================================================
@@ -683,9 +690,9 @@ def _barre_progression(section, debut, fin, total=12):
 
 def ecran_onb_investisseur():
     """Profil — sous-étape 1/4 : situation de trésorerie actuelle."""
-    stepper_panel(2)
+    stepper_panel(3)
     _cartes_profil_css()
-    st.button("← Retour", on_click=go, args=("onb_representant",))
+    st.button("← Retour", on_click=go, args=("onb_secteur",))
     titre_section("LumenX et vous", "Où en est votre trésorerie aujourd'hui ?")
     _barre_progression(1, 1, 3)
     col, _ = st.columns([2, 0.5])
@@ -714,7 +721,7 @@ def ecran_onb_investisseur():
 
 def ecran_onb_profil2():
     """Profil — sous-étape 2/4 : profil investisseur."""
-    stepper_panel(2)
+    stepper_panel(3)
     _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_investisseur",))
     titre_section("LumenX et vous", "Quel investisseur êtes-vous ?")
@@ -767,7 +774,7 @@ def ecran_onb_profil2():
 
 def ecran_onb_profil3():
     """Profil — sous-étape 3/4 : contraintes."""
-    stepper_panel(2)
+    stepper_panel(3)
     _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil2",))
     titre_section("LumenX et vous", "Sous quelles contraintes opérez-vous ?")
@@ -796,7 +803,7 @@ def ecran_onb_profil3():
 
 def ecran_onb_profil4():
     """Profil — sous-étape 4/4 : objectifs (choix multiple)."""
-    stepper_panel(2)
+    stepper_panel(3)
     _cartes_profil_css()
     st.button("← Retour", on_click=go, args=("onb_profil3",))
     titre_section("LumenX et vous", "Quels sont vos objectifs financiers ?")
@@ -815,24 +822,32 @@ def ecran_onb_profil4():
 # ONBOARDING — 3 bis. Connexion bancaire fictive (ACTIF)
 # ==================================================================
 def ecran_onb_banque():
-    """Étape 7 (Comptes) — ACTIVE mais fictive. La connexion bancaire réelle
-    (agrégateur) est remplacée par le choix d'un profil démo."""
-    stepper_panel(6)
+    """Étape 8 (Comptes) — ACTIVE mais fictive. Une tuile « + » de connexion
+    remplace les anciens boutons : un clic charge un compte fictif -> dashboard."""
+    stepper_panel(7)
     st.button("← Retour", on_click=go, args=("onb_signature",))
     titre_section("Vos comptes", "Contrat signé et documents validés — connectez vos comptes.")
     col, _ = st.columns([1.4, 2])
     with col:
-        encadre(
-            "Pour le MVP, la connexion réelle est désactivée. Choisissez un type "
-            "d'entreprise : il charge un jeu de données de trésorerie fictives.",
-            "info",
+        encadre("🧪 Pour le MVP, la connexion se fait sur un faux compte bancaire "
+                "(données fictives).", "info")
+        st.markdown(
+            "<style>"
+            ".st-key-tuile_compte button{height:180px !important;background:rgba(45,107,255,0.05) !important;"
+            "border:1.5px dashed #2D6BFF !important;border-radius:16px !important;box-shadow:none !important;"
+            "display:flex !important;flex-direction:column !important;align-items:center !important;"
+            "justify-content:center !important;gap:12px !important;}"
+            ".st-key-tuile_compte button div, .st-key-tuile_compte button p{color:#dbe2ef !important;"
+            "font-weight:600 !important;font-size:15px !important;text-align:center !important;}"
+            ".st-key-tuile_compte button [data-testid='stIconMaterial']{font-size:42px !important;color:#2D6BFF !important;}"
+            "</style>",
+            unsafe_allow_html=True,
         )
-        for p in ["PME", "Free-Lance", "SaaS", "Libéral"]:
-            st.button(
-                p,
-                use_container_width=True,
-                on_click=set_profil, args=(p, "dashboard"),
-            )
+        tcol, _ = st.columns(2)
+        with tcol:
+            st.button("Connexion aux comptes bancaires", key="tuile_compte",
+                      icon=":material/add:", use_container_width=True,
+                      on_click=set_profil, args=("Démo", "dashboard"))
 
 
 # ==================================================================
@@ -1372,7 +1387,8 @@ _F_NOM, _F_ECRAN, _F_COMMENT = "entry.1772696514", "entry.306899172", "entry.136
 ECRAN_LABELS = {
     "accueil": "Accueil", "demo_profil": "Choix profil démo", "auth": "Connexion",
     "cgu": "CGU / RGPD", "onb_societe": "Onboarding – Entreprise",
-    "onb_representant": "Onboarding – Dirigeant", "onb_investisseur": "Onboarding – Profil 1/4",
+    "onb_representant": "Onboarding – Dirigeant", "onb_secteur": "Onboarding – Secteur d'activité",
+    "onb_investisseur": "Onboarding – Profil 1/4",
     "onb_profil2": "Onboarding – Profil 2/4", "onb_profil3": "Onboarding – Profil 3/4",
     "onb_profil4": "Onboarding – Profil 4/4",
     "onb_ubo": "Onboarding – Bénéficiaires", "onb_validation": "Onboarding – Validation",
@@ -1428,6 +1444,7 @@ ecrans = {
     "cgu": ecran_cgu,
     "onb_societe": ecran_onb_societe,
     "onb_representant": ecran_onb_representant,
+    "onb_secteur": ecran_onb_secteur,
     "onb_investisseur": ecran_onb_investisseur,
     "onb_profil2": ecran_onb_profil2,
     "onb_profil3": ecran_onb_profil3,
