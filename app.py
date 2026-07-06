@@ -681,17 +681,21 @@ def _btn_continuer(cible):
                   on_click=go, args=(cible,))
 
 def _barre_progression(section, debut, fin, total=12):
-    """Barre de progression basée sur le nombre de questions (façon typeform)."""
+    """Barre de progression basée sur le nombre de questions (façon typeform).
+    Rendue dans une colonne [2, 0.5] identique à celle des questions, pour que la
+    barre ait exactement la même largeur que les encarts de questions."""
     pct = int(fin / total * 100)
     libelle = f"Question {debut}" if debut == fin else f"Questions {debut} à {fin}"
-    st.markdown(
-        f"<div style='max-width:900px;margin:0 0 22px;'>"
-        f"<div style='display:flex;justify-content:space-between;font-size:12px;color:#7e89a8;margin-bottom:6px;'>"
-        f"<span>Section {section} sur 4</span><span>{libelle} sur {total}</span></div>"
-        f"<div style='height:6px;background:#1c2740;border-radius:3px;overflow:hidden;'>"
-        f"<div style='height:100%;width:{pct}%;background:#2D6BFF;border-radius:3px;'></div></div></div>",
-        unsafe_allow_html=True,
-    )
+    c, _ = st.columns([2, 0.5])
+    with c:
+        st.markdown(
+            f"<div style='margin:0 0 22px;'>"
+            f"<div style='display:flex;justify-content:space-between;font-size:12px;color:#7e89a8;margin-bottom:6px;'>"
+            f"<span>Section {section} sur 4</span><span>{libelle} sur {total}</span></div>"
+            f"<div style='height:6px;background:#1c2740;border-radius:3px;overflow:hidden;'>"
+            f"<div style='height:100%;width:{pct}%;background:#2D6BFF;border-radius:3px;'></div></div></div>",
+            unsafe_allow_html=True,
+        )
 
 
 def ecran_onb_investisseur():
