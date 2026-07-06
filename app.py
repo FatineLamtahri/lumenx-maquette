@@ -490,20 +490,20 @@ def stepper_panel(active):
         if i == active:
             lignes += (
                 '<div style="display:flex;align-items:center;gap:16px;padding:15px 18px;margin-bottom:8px;border-radius:12px;background:rgba(90,150,255,.18);">'
-                f'<span style="width:39px;height:39px;border-radius:50%;background:#5A96FF;color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{i+1}</span>'
-                f'<span style="color:#ffffff;font-size:21px;font-weight:600;">{nom}</span></div>'
+                f'<span style="width:32px;height:32px;border-radius:50%;background:#5A96FF;color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{i+1}</span>'
+                f'<span style="color:#ffffff;font-size:18px;font-weight:600;">{nom}</span></div>'
             )
         elif i < active:
             lignes += (
                 '<div style="display:flex;align-items:center;gap:16px;padding:15px 18px;margin-bottom:8px;">'
-                '<span style="width:39px;height:39px;border-radius:50%;background:#22C55E;color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✓</span>'
-                f'<span style="color:#dbe2ef;font-size:21px;">{nom}</span></div>'
+                '<span style="width:32px;height:32px;border-radius:50%;background:#22C55E;color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✓</span>'
+                f'<span style="color:#dbe2ef;font-size:18px;">{nom}</span></div>'
             )
         else:
             lignes += (
                 '<div style="display:flex;align-items:center;gap:16px;padding:15px 18px;margin-bottom:8px;">'
-                f'<span style="width:39px;height:39px;border-radius:50%;border:1px solid #3a4566;color:#8a93ad;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{i+1}</span>'
-                f'<span style="color:#8a93ad;font-size:21px;">{nom}</span></div>'
+                f'<span style="width:32px;height:32px;border-radius:50%;border:1px solid #3a4566;color:#8a93ad;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{i+1}</span>'
+                f'<span style="color:#8a93ad;font-size:18px;">{nom}</span></div>'
             )
     st.markdown(
         '<div style="position:fixed;left:0;top:0;bottom:0;width:450px;z-index:10;background:#060B1C;'
