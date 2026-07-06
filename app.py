@@ -135,7 +135,7 @@ def reset_societe():
 
 # ---------- Étapes du parcours de création d'espace ----------
 # Utilisé par stepper_panel() (panneau vertical à gauche des écrans d'onboarding).
-ETAPES = ["Entreprise", "Dirigeant", "Profil", "Bénéficiaires", "Validation", "Signature", "Comptes"]
+ETAPES = ["Entreprise", "Dirigeant", "Objectifs", "Bénéficiaires", "Validation", "Signature", "Comptes"]
 
 
 # Widget "trésorerie" affiché à droite de l'accueil (flux -> horizons -> placement,
@@ -545,7 +545,6 @@ def ecran_onb_societe():
                 st.write(f"Forme juridique : {s['forme']}")
                 st.write(f"Adresse : {s['adresse']}")
                 st.write(f"Code NAF / APE : {s['naf']}")
-                st.caption("Données issues du répertoire Sirene de l'INSEE.")
             col_ok, col_non = st.columns(2)
             col_ok.button(
                 "✅ C'est bien ma société",
@@ -553,7 +552,7 @@ def ecran_onb_societe():
                 on_click=go, args=("onb_representant",),
             )
             col_non.button(
-                "Ce n'est pas ça",
+                "Ce n'est pas ma société",
                 use_container_width=True,
                 on_click=reset_societe,
             )
@@ -639,45 +638,139 @@ def ecran_onb_signature():
 # ==================================================================
 # ONBOARDING — Type d'investisseur (ACTIF)
 # ==================================================================
+# L'étape « Profil » (index 2) est découpée en 4 sous-étapes qui s'enchaînent.
+# Toutes affichent stepper_panel(2) : « Profil » reste l'étape active à gauche.
+
 def ecran_onb_investisseur():
-    """Étape 3 (Profil) — ACTIVE. Questions de profilage (type d'investisseur,
-    problématique, objectif, montant) qui personnaliseraient le tableau de bord."""
+    """Profil — sous-étape 1/4 : situation de trésorerie actuelle."""
     stepper_panel(2)
     st.button("← Retour", on_click=go, args=("onb_representant",))
-    titre_section("Votre profil & objectifs", "Ces réponses personnalisent votre tableau de bord.")
-    col, _ = st.columns([1.4, 2])
+    titre_section("LumenX et vous",
+                  "Section 1 sur 4 — Où en est votre trésorerie aujourd'hui ?")
+    col, _ = st.columns([2, 0.5])
     with col:
-        st.selectbox("Type d'investisseur", ["Débutant", "Intermédiaire", "Expérimenté"])
-        st.selectbox(
-            "Votre problématique",
-            [
-                "Je me repose sur mon banquier / comptable",
-                "J'ai peur de perdre de l'argent",
-                "Mon suivi Excel est chronophage",
-                "Je n'ai pas le temps",
-                "Je ne sais pas par où commencer",
-                "Autre",
-            ],
+        st.radio(
+            "Quelle visibilité avez-vous aujourd'hui sur votre trésorerie à venir "
+            "(encaissements et décaissements futurs) ?",
+            ["Moins de 3 mois", "3 à 6 mois", "6 mois à 1 an", "Plus d'1 an", "Je ne sais pas"],
+            index=None, key="p1_visibilite",
         )
-        st.selectbox(
-            "Votre objectif",
-            [
-                "Faire fructifier l'épargne de mon entreprise",
-                "Préparer un achat important",
-                "Organiser ma trésorerie",
-                "Épargner en cas de coup dur",
-            ],
+        st.radio(
+            "Quel est le montant moyen de votre trésorerie « dormante », celle qui reste "
+            "sur le compte courant sans être utilisée d'un mois sur l'autre ?",
+            ["Moins de 50 k€", "50 – 150 k€", "150 – 500 k€", "Plus de 500 k€", "Je ne sais pas"],
+            index=None, key="p1_dormante",
         )
-        st.selectbox(
-            "Montant de trésorerie excédentaire",
-            ["< 10 k€", "10–50 k€", "50–150 k€", "150–500 k€", "> 500 k€"],
+        st.radio(
+            "Connaissez-vous votre « coussin de sécurité » minimum, le niveau de trésorerie "
+            "(souvent exprimé en mois de charges fixes) sous lequel vous ne voulez jamais descendre ?",
+            ["1 mois de charges fixes", "3 mois de charges fixes", "6 mois de charges fixes",
+             "Je ne l'ai pas encore défini"],
+            index=None, key="p1_coussin",
         )
         st.divider()
-        st.button(
-            "Continuer",
-            type="primary", use_container_width=True,
-            on_click=go, args=("onb_ubo",),
+        st.button("Continuer", type="primary", use_container_width=True,
+                  on_click=go, args=("onb_profil2",))
+
+
+def ecran_onb_profil2():
+    """Profil — sous-étape 2/4 : profil investisseur."""
+    stepper_panel(2)
+    st.button("← Retour", on_click=go, args=("onb_investisseur",))
+    titre_section("LumenX et vous",
+                  "Section 2 sur 4 — Quel investisseur êtes-vous ?")
+    col, _ = st.columns([2, 0.5])
+    with col:
+        st.radio(
+            "Quand vous pensez « placement de trésorerie », quel mot vous vient en premier ?",
+            ["Sécurité", "Rendement", "Fiscalité", "Inflation", "Je ne sais pas"],
+            index=None, key="p2_mot",
         )
+        st.radio(
+            "Quelle est votre tolérance face à une baisse temporaire de la valeur de vos placements ?",
+            [
+                "Nulle — je veux récupérer chaque euro placé, même si le rendement est très faible.",
+                "Faible — acceptable sur une petite partie de la trésorerie, si le potentiel de gain le justifie sur le long terme.",
+                "Modérée — j'accepte les fluctuations de marché pour viser une meilleure performance à moyen ou long terme.",
+            ],
+            index=None, key="p2_tolerance",
+        )
+        st.radio(
+            "Quelle est votre expérience des placements financiers ?",
+            [
+                "Débutant — je n'ai jamais réalisé de placement",
+                "Intermédiaire — moins de 5 placements par an",
+                "Confirmé — de 5 à 15 placements par an",
+                "Expérimenté — plus de 15 placements par an",
+            ],
+            index=None, key="p2_experience",
+        )
+        sans_objet = st.checkbox("Sans objet — je n'ai jamais placé", key="p2_satisf_na")
+        st.slider(
+            "Globalement, à quel point êtes-vous satisfait(e) de vos expériences de placement "
+            "passées ? (0 = très insatisfait, 10 = très satisfait)",
+            0, 10, 5, disabled=sans_objet, key="p2_satisf",
+        )
+        st.radio(
+            "Préférez-vous bloquer des fonds sur une durée connue à l'avance pour un rendement "
+            "garanti, ou garder de la flexibilité quitte à accepter un taux variable ?",
+            [
+                "Bloquer mes fonds pour un rendement garanti, mais plus faible",
+                "Garder de la flexibilité pour un rendement potentiellement plus élevé, mais incertain",
+                "Un équilibre entre les deux",
+            ],
+            index=None, key="p2_blocage",
+        )
+        st.divider()
+        st.button("Continuer", type="primary", use_container_width=True,
+                  on_click=go, args=("onb_profil3",))
+
+
+def ecran_onb_profil3():
+    """Profil — sous-étape 3/4 : contraintes."""
+    stepper_panel(2)
+    st.button("← Retour", on_click=go, args=("onb_profil2",))
+    titre_section("LumenX et vous",
+                  "Section 3 sur 4 — Sous quelles contraintes opérez-vous ?")
+    col, _ = st.columns([2, 0.5])
+    with col:
+        st.radio(
+            "En cas de coup dur, sous quel délai maximum devez-vous pouvoir récupérer les fonds placés ?",
+            ["Sous 48 h", "Sous 1 mois", "Sous 3 mois", "Sous 1 an", "Plus d'1 an"],
+            index=None, key="p3_delai",
+        )
+        st.radio(
+            "Quelle part de votre temps souhaitez-vous consacrer au suivi de ces placements ?",
+            ["Quotidiennement", "Chaque semaine", "Chaque mois", "Chaque trimestre",
+             "Une fois par an ou moins"],
+            index=None, key="p3_temps",
+        )
+        st.radio(
+            "Avez-vous des critères extra-financiers importants, par exemple investir dans des "
+            "fonds responsables (ISR/ESG) ou soutenir l'économie locale ?",
+            ["Oui, c'est important pour moi", "Non", "Je ne sais pas"],
+            index=None, key="p3_esg",
+        )
+        st.divider()
+        st.button("Continuer", type="primary", use_container_width=True,
+                  on_click=go, args=("onb_profil4",))
+
+
+def ecran_onb_profil4():
+    """Profil — sous-étape 4/4 : objectifs (choix multiple)."""
+    stepper_panel(2)
+    st.button("← Retour", on_click=go, args=("onb_profil3",))
+    titre_section("LumenX et vous",
+                  "Section 4 sur 4 — Quels sont vos objectifs financiers ?")
+    col, _ = st.columns([2, 0.5])
+    with col:
+        st.caption("Plusieurs réponses possibles.")
+        st.checkbox("Faire fructifier la trésorerie excédentaire de mon entreprise", key="p4_fructifier")
+        st.checkbox("Avoir une visibilité globale sur la trésorerie de mon entreprise", key="p4_visibilite")
+        st.checkbox("Avoir une compréhension fine des mouvements de trésorerie de mon entreprise", key="p4_comprehension")
+        st.divider()
+        st.button("Continuer", type="primary", use_container_width=True,
+                  on_click=go, args=("onb_ubo",))
 
 
 # ==================================================================
@@ -1241,7 +1334,9 @@ _F_NOM, _F_ECRAN, _F_COMMENT = "entry.1772696514", "entry.306899172", "entry.136
 ECRAN_LABELS = {
     "accueil": "Accueil", "demo_profil": "Choix profil démo", "auth": "Connexion",
     "cgu": "CGU / RGPD", "onb_societe": "Onboarding – Entreprise",
-    "onb_representant": "Onboarding – Dirigeant", "onb_investisseur": "Onboarding – Profil",
+    "onb_representant": "Onboarding – Dirigeant", "onb_investisseur": "Onboarding – Profil 1/4",
+    "onb_profil2": "Onboarding – Profil 2/4", "onb_profil3": "Onboarding – Profil 3/4",
+    "onb_profil4": "Onboarding – Profil 4/4",
     "onb_ubo": "Onboarding – Bénéficiaires", "onb_validation": "Onboarding – Validation",
     "onb_signature": "Onboarding – Signature", "onb_banque": "Onboarding – Comptes",
     "dashboard": "Tableau de bord", "espace_profil": "Mon profil",
@@ -1296,6 +1391,9 @@ ecrans = {
     "onb_societe": ecran_onb_societe,
     "onb_representant": ecran_onb_representant,
     "onb_investisseur": ecran_onb_investisseur,
+    "onb_profil2": ecran_onb_profil2,
+    "onb_profil3": ecran_onb_profil3,
+    "onb_profil4": ecran_onb_profil4,
     "onb_ubo": ecran_onb_ubo,
     "onb_validation": ecran_onb_validation,
     "onb_banque": ecran_onb_banque,
