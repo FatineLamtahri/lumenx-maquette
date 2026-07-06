@@ -232,9 +232,12 @@ def ecran_accueil():
         # --- Encart texte : titre + accroche ---
         st.markdown(
             """
-            <h1 style="font-family:'Fraunces',serif;font-size:52px;line-height:1.06;margin:0;font-weight:600;color:#fff;">Pilotez votre trésorerie<br><span style="color:#3B82F6;font-size:40px;font-style:italic;">En temps réel</span></h1>
+            <h1 style="font-family:'Fraunces',serif;font-size:52px;line-height:1.06;margin:0;font-weight:600;color:#fff;">Faites votre métier<br><span style="color:#3B82F6;font-size:40px;font-style:italic;">Nous faisons fructifier votre succès</span></h1>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:440px;">Votre priorité est de développer votre activité, d'innover et de satisfaire vos clients.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:440px;">Le notre est de .... ?.</p>
             <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:440px;">LumenX est la plateforme qui vous aide à optimiser l'argent de votre entreprise.</p>
-            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:0 0 28px;max-width:440px;">Suivez vos flux de cash, gérez votre budget, optimisez votre trésorerie.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:26px 0 4px;max-width:440px;">Laisser votre trésorerie dormir sur un compte courant classique n'est pas un choix de sécurité, c'est une perte sèche.</p>
+            <p style="color:#C2C6D2;font-size:16px;font-weight:400;margin:0 0 28px;max-width:440px;">Ne choisissez plus entre gérer votre entreprise et optimiser vos finances. Faites les deux!.</p>
             """,
             unsafe_allow_html=True,
         )
@@ -263,7 +266,7 @@ def ecran_accueil():
         <div style="position:fixed;left:0;right:0;bottom:0;z-index:50;background:#16244D;border-top:1px solid #20202c;padding:14px 48px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
           <div>
             <span style="font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:#fff;">Lumen<span style="color:#2D6BFF;">X</span></span>
-            <span style="font-size:13px;color:#c2c6d2;margin-left:14px;">Pilotez votre trésorerie en temps réel.</span>
+            <span style="font-size:13px;color:#c2c6d2;margin-left:14px;">Faites votre métier. Nous faisons fructifier votre succès.</span>
           </div>
           <div style="font-size:13px;color:#c2c6d2;display:flex;align-items:center;gap:24px;">
             <span>Mentions légales</span><span>CGU</span><span>Confidentialité</span>
@@ -344,8 +347,9 @@ def ecran_auth():
                 <div style="font-family:'Fraunces',serif;font-size:48px;font-weight:600;color:#fff;line-height:1.12;">Votre trésorerie,<br><span style="font-style:italic;color:#3B82F6;">pilotée en temps<br>réel.</span></div>
                 <div style="margin-top:34px;display:flex;flex-direction:column;gap:18px;">
                   <div style="color:#C2C6D2;font-size:18px;"><span style="color:#2D6BFF;">✓</span> Tous vos comptes en un seul endroit</div>
+                  <div style="color:#C2C6D2;font-size:18px;"><span style="color:#2D6BFF;">✓</span> Visualisation ordonnée de votre trésorerie</div>
                   <div style="color:#C2C6D2;font-size:18px;"><span style="color:#2D6BFF;">✓</span> Prévisions de cash en temps réel</div>
-                  <div style="color:#C2C6D2;font-size:18px;"><span style="color:#2D6BFF;">✓</span> Placez votre excédent en 1 clic</div>
+                  <div style="color:#C2C6D2;font-size:18px;"><span style="color:#2D6BFF;">✓</span> Placement calibré de votre excédent</div>
                 </div>
                 <div style="margin-top:30px;color:#7e8596;font-size:13px;">🔒 Connexion sécurisée · données chiffrées</div>
                 """,
