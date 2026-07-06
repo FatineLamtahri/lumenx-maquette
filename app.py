@@ -227,7 +227,7 @@ def ecran_accueil():
         unsafe_allow_html=True,
     )
     # ===== CONTENU CENTRAL : encart texte (gauche) + encart dashboard (droite) =====
-    _, col_text, col_viz, _ = st.columns([0.6, 1, 1, 0.4], vertical_alignment="center")
+    _, col_text, col_viz, _ = st.columns([0.4, 1.5, 1, 0.4], vertical_alignment="center")
     with col_text:
         # --- Encart texte : titre + accroche ---
         st.markdown(
