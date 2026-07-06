@@ -648,8 +648,10 @@ def _cartes_profil_css():
         "<style>[class*='qcard']{background:rgba(45,107,255,0.06) !important;"
         "border:1px solid rgba(45,107,255,0.45) !important;border-radius:14px !important;"
         "padding:10px 22px 16px !important;margin-bottom:16px !important;}"
-        "[class*='qcard'] div[role='radiogroup'] label{margin:9px 0 !important;}"
-        "[class*='qcard'] div[role='radiogroup']{gap:6px !important;}</style>",
+        "[class*='qcard'] div[role='radiogroup'] label{margin:9px 0 !important;gap:12px !important;}"
+        "[class*='qcard'] div[role='radiogroup']{gap:6px !important;}"
+        "[class*='qcard'] [data-testid='stWidgetLabel'] p{font-size:15.5px !important;font-weight:600 !important;margin-bottom:8px !important;}"
+        "[class*='qcard'] div[role='radiogroup'] label p{font-size:15px !important;font-weight:400 !important;}</style>",
         unsafe_allow_html=True,
     )
 
