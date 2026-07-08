@@ -971,17 +971,30 @@ def ecran_onb_banque():
 # Rubriques de la barre latérale : (écran cible, icône Material, libellé).
 # cible = None -> rubrique "à venir" (ouvre un écran grisé).
 # Deux groupes séparés par une ligne : principal puis personnel.
-NAV_PRINCIPAL = [
-    ("dashboard", ":material/dashboard:",     "Tableau de bord"),
-    (None,        ":material/account_balance:", "Comptes"),
-    (None,        ":material/swap_horiz:",     "Flux"),
-    (None,        ":material/show_chart:",     "Prévisionnel"),
-    (None,        ":material/trending_up:",    "Placements"),
-]
-NAV_PERSO = [
-    ("espace_profil",    ":material/person:",      "Mon profil"),
-    ("espace_documents", ":material/description:", "Documents"),
-    (None,               ":material/settings:",    "Paramètres"),
+# Barre latérale groupée : (titre du groupe, [(écran cible, icône Material, libellé)]).
+# cible = None -> rubrique "à venir" (ouvre l'écran grisé espace_avenir).
+NAV_GROUPES = [
+    ("PILOTAGE", [
+        ("dashboard", ":material/dashboard:",     "Tableau de bord"),
+        (None,        ":material/notifications:",  "Alertes"),
+    ]),
+    ("OPÉRATIONS", [
+        (None,        ":material/account_balance:", "Comptes & connexions"),
+        (None,        ":material/receipt_long:",    "Transactions"),
+        (None,        ":material/trending_up:",     "Placements"),
+    ]),
+    ("DOSSIER", [
+        ("espace_documents", ":material/description:", "Documents"),
+        ("espace_profil",    ":material/business:",    "Entreprise & profil"),
+    ]),
+    ("ACCOMPAGNEMENT", [
+        (None, ":material/support_agent:", "Aide & Support"),
+        (None, ":material/auto_awesome:",  "(AI)nalytics"),
+    ]),
+    ("COMPTE", [
+        (None, ":material/settings:", "Paramètres"),
+        (None, ":material/payments:", "Facturation & abonnement"),
+    ]),
 ]
 
 def _sep_sidebar():
@@ -1038,11 +1051,14 @@ def sidebar_espace(active):
             "color:#fff;margin-top:-10px;padding:0 6px 18px;\">Lumen<span style='color:#2D6BFF;'>X</span></div>",
             unsafe_allow_html=True,
         )
-        for cible, icone, label in NAV_PRINCIPAL:
-            _nav_item(cible, icone, label, active)
-        _sep_sidebar()
-        for cible, icone, label in NAV_PERSO:
-            _nav_item(cible, icone, label, active)
+        for gtitre, items in NAV_GROUPES:
+            st.markdown(
+                f"<div style='color:#6f7b95;font-size:10.5px;font-weight:700;"
+                f"letter-spacing:1.4px;padding:14px 12px 3px;'>{gtitre}</div>",
+                unsafe_allow_html=True,
+            )
+            for cible, icone, label in items:
+                _nav_item(cible, icone, label, active)
         # Bloc bas épinglé tout en bas de la barre (voir CSS .st-key-nav_bottom).
         with st.container(key="nav_bottom"):
             _sep_sidebar()
