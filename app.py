@@ -1023,8 +1023,6 @@ def sidebar_espace(active):
         .block-container > div { margin-bottom: 0 !important; }
         /* Barre latérale aux couleurs de la marque */
         [data-testid="stSidebar"] { background: #060B1C; border-right: 1px solid #1a2336; }
-        /* Espacement resserré pour tout faire tenir sur une page */
-        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 0.15rem !important; }
 
         /* Colonne pleine hauteur pour pouvoir coller un bloc tout en bas */
         [data-testid="stSidebarUserContent"] { min-height: calc(100vh - 1.5rem); display: flex; flex-direction: column; }
@@ -1034,7 +1032,7 @@ def sidebar_espace(active):
         /* Boutons de nav : transparents + alignés à GAUCHE (icône puis texte) */
         [data-testid="stSidebar"] button {
             background: transparent !important; border: none !important; box-shadow: none !important;
-            color: #aab3c7 !important; font-weight: 500 !important; padding: 4px 12px !important;
+            color: #aab3c7 !important; font-weight: 500 !important; padding: 7px 12px !important;
             justify-content: flex-start !important; text-align: left !important;
         }
         [data-testid="stSidebar"] button > div { justify-content: flex-start !important; width: 100% !important; text-align: left !important; }
@@ -1056,7 +1054,7 @@ def sidebar_espace(active):
         for gtitre, items in NAV_GROUPES:
             st.markdown(
                 f"<div style='color:#6f7b95;font-size:10.5px;font-weight:700;"
-                f"letter-spacing:1.4px;padding:8px 12px 2px;'>{gtitre}</div>",
+                f"letter-spacing:1.4px;padding:14px 12px 3px;'>{gtitre}</div>",
                 unsafe_allow_html=True,
             )
             for cible, icone, label in items:
