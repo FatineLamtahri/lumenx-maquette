@@ -642,30 +642,14 @@ def ecran_onb_representant():
 
 # Étape « Secteur d'activité » (index 2) : non gérée dans le MVP, insérée après
 # Dirigeant. Elle décale toutes les étapes suivantes d'un cran.
-# Secteurs proposés à l'étape 3, avec un pictogramme SVG inline par secteur.
+# Secteurs proposés à l'étape 3, avec une icône Material par secteur.
 _SECTEURS = [
-    ("saas", "Tech / SaaS",
-     '<svg viewBox="0 0 40 40" width="26" height="26"><g fill="#5A96FF">'
-     '<circle cx="14" cy="23" r="6"/><circle cx="21" cy="19" r="8"/>'
-     '<circle cx="28" cy="23" r="5.5"/><rect x="12" y="22" width="18" height="6" rx="3"/></g></svg>'),
-    ("industrie", "Industrie / Manufacturing",
-     '<svg viewBox="0 0 40 40" width="26" height="26"><g fill="#5A96FF">'
-     '<rect x="10" y="20" width="22" height="12"/><path d="M10,20 l6,-6 v6 z"/>'
-     '<path d="M17,20 l6,-6 v6 z"/><rect x="26" y="12" width="4" height="8"/></g></svg>'),
-    ("btob", "Services BtoB",
-     '<svg viewBox="0 0 40 40" width="26" height="26"><g fill="#5A96FF">'
-     '<rect x="10" y="12" width="10" height="20" rx="1.5"/><rect x="22" y="17" width="9" height="15" rx="1.5"/></g></svg>'),
-    ("perso", "Professions libérales / Indépendants",
-     '<svg viewBox="0 0 40 40" width="26" height="26"><g fill="#5A96FF">'
-     '<circle cx="20" cy="15" r="6"/><path d="M8,34 a12,10 0 0 1 24,0 z"/></g></svg>'),
-    ("finance", "Finance / Conseil",
-     '<svg viewBox="0 0 40 40" width="26" height="26"><circle cx="20" cy="20" r="12" fill="none" '
-     'stroke="#5A96FF" stroke-width="2.5"/><text x="20" y="26" text-anchor="middle" font-size="16" '
-     'font-weight="700" fill="#5A96FF" font-family="Arial">&#8364;</text></svg>'),
-    ("retail", "Commerce / Retail",
-     '<svg viewBox="0 0 40 40" width="26" height="26">'
-     '<path d="M12,16 h16 l-1.5,16 h-13 z" fill="#5A96FF"/>'
-     '<path d="M16,16 v-3 a4,4 0 0 1 8,0 v3" fill="none" stroke="#5A96FF" stroke-width="2.4"/></svg>'),
+    ("saas", "Tech / SaaS", ":material/cloud:"),
+    ("industrie", "Industrie / Manufacturing", ":material/factory:"),
+    ("btob", "Services BtoB", ":material/handshake:"),
+    ("perso", "Professions libérales / Indépendants", ":material/person:"),
+    ("finance", "Finance / Conseil", ":material/account_balance:"),
+    ("retail", "Commerce / Retail", ":material/storefront:"),
 ]
 
 
@@ -681,35 +665,34 @@ def ecran_onb_secteur():
     st.button("← Retour", on_click=go, args=("onb_representant",))
     titre_section("Secteur d'activité",
                   "Sélectionnez le secteur principal de votre entreprise — il adapte la catégorisation.")
+    # Chaque secteur = un vrai bouton (cliquable de façon fiable), stylé en carte.
+    # Secteur choisi -> type "primary" (bordure bleue) ; les autres -> "secondary".
     st.markdown(
         "<style>"
-        ".sect-card{display:flex;align-items:center;gap:12px;background:#0F1A2C;"
-        "border:1px solid #1E2A3D;border-radius:14px;padding:14px 16px;min-height:98px;box-sizing:border-box;}"
-        ".sect-card.sel{border:2px solid #2D6BFF;background:rgba(45,107,255,0.10);padding:13px 15px;}"
-        ".sect-ico{width:46px;height:46px;border-radius:50%;background:rgba(45,107,255,0.13);"
-        "display:flex;align-items:center;justify-content:center;flex-shrink:0;}"
-        ".sect-nom{font-size:14px;font-weight:600;color:#fff !important;line-height:1.25;overflow-wrap:anywhere;}"
-        # Le bouton transparent recouvre toute la carte pour la rendre cliquable.
-        "[class*='st-key-sectcard_']{position:relative;}"
-        "[class*='st-key-sectcard_'] .stButton{position:absolute;inset:0;margin:0;z-index:3;}"
-        "[class*='st-key-sectcard_'] .stButton>button{width:100%;height:100%;opacity:0;"
-        "border:none;background:transparent;min-height:0;}"
+        "[class*='st-key-sectbtn_'] button{min-height:94px !important;border-radius:14px !important;"
+        "justify-content:flex-start !important;text-align:left !important;padding:14px 16px !important;}"
+        "[class*='st-key-sectbtn_'] [data-testid='stBaseButton-secondary']{background:#0F1A2C !important;"
+        "border:1px solid #1E2A3D !important;}"
+        "[class*='st-key-sectbtn_'] [data-testid='stBaseButton-primary']{background:rgba(45,107,255,0.12) !important;"
+        "border:2px solid #2D6BFF !important;}"
+        "[class*='st-key-sectbtn_'] button p{white-space:normal !important;font-weight:600 !important;"
+        "font-size:14px !important;line-height:1.25 !important;color:#fff !important;overflow-wrap:anywhere;}"
+        "[class*='st-key-sectbtn_'] button [data-testid='stIconMaterial']{font-size:26px !important;"
+        "color:#5A96FF !important;margin-right:8px;}"
         "</style>",
         unsafe_allow_html=True,
     )
     choisi = st.session_state.get("secteur")
     for debut in (0, 3):
         cols = st.columns(3, gap="medium")
-        for j, (k, nom, svg) in enumerate(_SECTEURS[debut:debut + 3]):
+        for j, (k, nom, ic) in enumerate(_SECTEURS[debut:debut + 3]):
             with cols[j]:
-                with st.container(key=f"sectcard_{k}"):
-                    sel = " sel" if choisi == nom else ""
-                    st.markdown(
-                        f"<div class='sect-card{sel}'><div class='sect-ico'>{svg}</div>"
-                        f"<div class='sect-nom'>{nom}</div></div>",
-                        unsafe_allow_html=True,
+                with st.container(key=f"sectbtn_{k}"):
+                    st.button(
+                        nom, icon=ic, key=f"sb_{k}", use_container_width=True,
+                        type="primary" if choisi == nom else "secondary",
+                        on_click=choisir_secteur, args=(nom,),
                     )
-                    st.button(" ", key=f"sectbtn_{k}", on_click=choisir_secteur, args=(nom,))
     st.write("")
     _, cbtn = st.columns([4, 1])
     with cbtn:
