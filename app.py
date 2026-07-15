@@ -1360,6 +1360,7 @@ def _onglet_ma_treso():
         # écart IDENTIQUE entre toutes les cartes des 2 colonnes (gap fixe)
         # écart Streamlit mis à 0 : c'est nous qui fixons une marge identique (18 px) sur chaque carte
         ".st-key-mt_grid [data-testid='stColumn'] > [data-testid='stVerticalBlock']{gap:0 !important;}"
+        ".st-key-mt_right > [data-testid='stVerticalBlock']{gap:0 !important;}"
         ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:18px;}"
         ".st-key-mt_hyp > [data-testid='stVerticalBlock']{gap:0.5rem !important;}"
         # bouton Recalculer : discret (translucide, petit), comme 'Gérer les comptes'
