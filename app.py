@@ -1360,13 +1360,13 @@ def _onglet_ma_treso():
         # écart IDENTIQUE entre toutes les cartes des 2 colonnes (gap fixe)
         # écart Streamlit mis à 0 : c'est nous qui fixons une marge identique (18 px) sur chaque carte
         ".st-key-mt_grid [data-testid='stColumn'] > [data-testid='stVerticalBlock']{gap:0 !important;}"
-        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:18px;}"
+        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:18px;height:340px;box-sizing:border-box;}"
         ".st-key-mt_hyp > [data-testid='stVerticalBlock']{gap:0.5rem !important;}"
         # bouton Recalculer : discret (translucide, petit), comme 'Gérer les comptes'
         ".st-key-mt_hyp .stButton button{background:rgba(45,107,255,0.12) !important;"
         "border:1px solid rgba(45,107,255,0.55) !important;color:#5A96FF !important;font-weight:600 !important;"
         "padding:5px 10px !important;font-size:13px !important;}"
-        ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;}"
+        ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;height:100px;box-sizing:border-box;}"
         ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
         "border:1px solid #2D6BFF !important;color:#5A96FF !important;}"
         "</style>",
@@ -1377,7 +1377,7 @@ def _onglet_ma_treso():
     with col_g:
         st.markdown(
             """
-            <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;">
+            <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;height:340px;box-sizing:border-box;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:16px;font-weight:600;color:#e8ecf4;">Évolution de la trésorerie</span>
                 <span style="font-size:11px;color:#8a90a0;">16/04/2026 → 15/07/2026</span></div>
@@ -1387,7 +1387,7 @@ def _onglet_ma_treso():
               <div style="display:flex;gap:18px;font-size:11px;color:#c3ccdd;margin-top:6px;">
                 <span><span style="color:#2D6BFF;font-weight:700;">━</span> Historique</span>
                 <span><span style="color:#5DCAA5;font-weight:700;">╌╌</span> Projection</span></div>
-              <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:140px;margin-top:8px;">
+              <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:150px;margin-top:8px;">
                 <defs><linearGradient id="gdmt" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2D6BFF" stop-opacity="0.30"/><stop offset="1" stop-color="#2D6BFF" stop-opacity="0"/></linearGradient></defs>
                 <polygon fill="url(#gdmt)" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 240,110 0,110"/>
                 <polyline fill="none" stroke="#2D6BFF" stroke-width="2.5" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50"/>
@@ -1454,7 +1454,7 @@ def _onglet_ma_treso():
                            on_click=go, args=("espace_avenir",), use_container_width=True)
             st.markdown(
                 """
-                <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:18px;">
+                <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:18px;height:152px;box-sizing:border-box;">
                   <div style="font-size:15px;font-weight:600;color:#fff;">Période d'analyse</div>
                   <div style="font-size:12px;color:#8a90a0;margin-bottom:12px;">Points extrêmes de trésorerie, agrégés par compte</div>
                   <div style="display:flex;justify-content:space-between;">
@@ -1491,7 +1491,7 @@ def _onglet_ma_treso():
                 )
             st.markdown(
                 "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-                "padding:16px 18px;margin-top:18px;\">"
+                "padding:16px 18px;margin-top:18px;height:410px;box-sizing:border-box;\">"
                 "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
                 + lignes + "</div>",
                 unsafe_allow_html=True,
