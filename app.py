@@ -1144,6 +1144,16 @@ def _crc_svg(rows, sel):
     dvx = x0 + last_hist * step + bw // 2 + step // 2
     div = (f'<line x1="{dvx}" y1="20" x2="{dvx}" y2="290" stroke="#5a6478" stroke-dasharray="3 4"/>'
            f'<text x="{dvx+5}" y="32" font-size="10.5" fill="#8a90a0">aujourd&#39;hui</text>')
+    # Échelle verticale en k€ : ligne 0 (axe) + repères 100 / 200 au-dessus (encaissements)
+    # et en dessous (décaissements).
+    grid = ('<text x="10" y="30" font-size="9.5" fill="#8a90a0">k€</text>'
+            f'<text x="36" y="{axis+3}" text-anchor="end" font-size="9" fill="#8a90a0">0</text>')
+    for gv in (100, 200):
+        uy, dy = axis - gv * scale, axis + gv * scale
+        grid += (f'<line x1="40" y1="{uy:.0f}" x2="740" y2="{uy:.0f}" stroke="#1c2740" stroke-dasharray="2 4"/>'
+                 f'<line x1="40" y1="{dy:.0f}" x2="740" y2="{dy:.0f}" stroke="#1c2740" stroke-dasharray="2 4"/>'
+                 f'<text x="36" y="{uy+3:.0f}" text-anchor="end" font-size="9" fill="#5a6478">{gv}</text>'
+                 f'<text x="36" y="{dy+3:.0f}" text-anchor="end" font-size="9" fill="#5a6478">{gv}</text>')
     return (
         '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;">'
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
@@ -1159,7 +1169,8 @@ def _crc_svg(rows, sel):
         '<pattern id="hR" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
         '<rect width="6" height="6" fill="#1A100E"/><line x1="0" y1="0" x2="0" y2="6" stroke="#E0604A" stroke-width="2"/></pattern>'
         '</defs>'
-        f'<line x1="30" y1="{axis}" x2="740" y2="{axis}" stroke="#2b3a52"/>'
+        + grid
+        + f'<line x1="30" y1="{axis}" x2="740" y2="{axis}" stroke="#2b3a52"/>'
         + div + "".join(parts) + '</svg></div>'
     )
 
