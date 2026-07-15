@@ -1173,7 +1173,7 @@ def _crc_detail_html(r):
 
     def ligne(lbl, v, coul, bold=False):
         tc = "#fff" if bold else "#c3ccdd"
-        vc = "#fff" if bold else coul
+        vc = "#fff"
         fw = "700" if bold else "400"
         return (
             '<div style="display:flex;align-items:center;padding:7px 0;border-top:1px solid #1E2A3D;">'
