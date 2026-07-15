@@ -1357,7 +1357,14 @@ def _onglet_ma_treso():
     # de la carte 'Comptes connectés'.
     st.markdown(
         "<style>"
-        "[data-testid='stColumn'] [data-testid='stVerticalBlock']{gap:0.85rem !important;}"
+        # colonnes de même hauteur
+        "[data-testid='stHorizontalBlock']{align-items:stretch !important;}"
+        "[data-testid='stColumn'] > [data-testid='stVerticalBlock']{height:100%;}"
+        "[data-testid='stColumn'] > [data-testid='stVerticalBlock'] > "
+        "[data-testid='stElementContainer']:has(.st-key-mt_right){height:100%;}"
+        # la colonne droite occupe toute la hauteur et répartit ses 3 cartes
+        ".st-key-mt_right{height:100%;}"
+        ".st-key-mt_right > [data-testid='stVerticalBlock']{height:100%;justify-content:space-between;}"
         ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;}"
         ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
         "border:1px solid #2D6BFF !important;color:#5A96FF !important;}"
@@ -1422,60 +1429,61 @@ def _onglet_ma_treso():
         st.button("Recalculer la projection", type="primary", key="matreso_recalc")
 
     with col_d:
-        with st.container(key="mt_comptes"):
-            cc1, cc2 = st.columns([1.5, 1], vertical_alignment="center")
-            cc1.markdown(
-                "<div style='font-size:15px;font-weight:600;color:#fff;'>Comptes connectés</div>"
-                "<div style='margin-top:4px;'><span style='font-size:26px;font-weight:800;color:#fff;'>4</span>"
-                "<span style='font-size:12.5px;color:#c3ccdd;margin-left:9px;'>comptes · 1 240 000 € agrégés</span></div>",
+        with st.container(key="mt_right"):
+            with st.container(key="mt_comptes"):
+                cc1, cc2 = st.columns([1.5, 1], vertical_alignment="center")
+                cc1.markdown(
+                    "<div style='font-size:15px;font-weight:600;color:#fff;'>Comptes connectés</div>"
+                    "<div style='margin-top:4px;'><span style='font-size:26px;font-weight:800;color:#fff;'>4</span>"
+                    "<span style='font-size:12.5px;color:#c3ccdd;margin-left:9px;'>comptes · 1 240 000 € agrégés</span></div>",
+                    unsafe_allow_html=True,
+                )
+                cc2.button("Gérer les comptes →", key="matreso_gerer",
+                           on_click=go, args=("espace_avenir",), use_container_width=True)
+            st.markdown(
+                """
+                <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;">
+                  <div style="font-size:15px;font-weight:600;color:#fff;">Période d'analyse</div>
+                  <div style="font-size:12px;color:#8a90a0;margin-bottom:12px;">Points extrêmes de trésorerie, agrégés par compte</div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <div><div style="font-size:12.5px;color:#c3ccdd;">Point haut</div>
+                      <div style="font-size:18px;font-weight:700;color:#5DCAA5;">1 310 000 €</div>
+                      <div style="font-size:11.5px;color:#8a90a0;">12/03/2026</div></div>
+                    <div><div style="font-size:12.5px;color:#c3ccdd;">Point bas</div>
+                      <div style="font-size:18px;font-weight:700;color:#E0604A;">940 000 €</div>
+                      <div style="font-size:11.5px;color:#8a90a0;">28/01/2026</div></div>
+                    <div><div style="font-size:12.5px;color:#c3ccdd;">Amplitude</div>
+                      <div style="font-size:18px;font-weight:700;color:#fff;">370 000 €</div></div>
+                  </div>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
-            cc2.button("Gérer les comptes →", key="matreso_gerer",
-                       on_click=go, args=("espace_avenir",), use_container_width=True)
-        st.markdown(
-            """
-            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;">
-              <div style="font-size:15px;font-weight:600;color:#fff;">Période d'analyse</div>
-              <div style="font-size:12px;color:#8a90a0;margin-bottom:12px;">Points extrêmes de trésorerie, agrégés par compte</div>
-              <div style="display:flex;justify-content:space-between;">
-                <div><div style="font-size:12.5px;color:#c3ccdd;">Point haut</div>
-                  <div style="font-size:18px;font-weight:700;color:#5DCAA5;">1 310 000 €</div>
-                  <div style="font-size:11.5px;color:#8a90a0;">12/03/2026</div></div>
-                <div><div style="font-size:12.5px;color:#c3ccdd;">Point bas</div>
-                  <div style="font-size:18px;font-weight:700;color:#E0604A;">940 000 €</div>
-                  <div style="font-size:11.5px;color:#8a90a0;">28/01/2026</div></div>
-                <div><div style="font-size:12.5px;color:#c3ccdd;">Amplitude</div>
-                  <div style="font-size:18px;font-weight:700;color:#fff;">370 000 €</div></div>
-              </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        mvts = [
-            ("14/07", "Encaissement client A", "BNP · FR76 •••• 4021", "+ 84 000 €", "#5DCAA5"),
-            ("12/07", "Salaires & charges", "BNP · FR76 •••• 4021", "− 90 000 €", "#E0604A"),
-            ("10/07", "Encaissement client B", "Qonto · FR76 •••• 8830", "+ 52 300 €", "#5DCAA5"),
-            ("08/07", "Fournisseur logistique", "BNP · FR76 •••• 4021", "− 34 500 €", "#E0604A"),
-            ("05/07", "Remboursement TVA", "Crédit Agricole · FR76 •••• 6094", "+ 18 900 €", "#5DCAA5"),
-        ]
-        lignes = ""
-        for d, lib, cpt, montant, coul in mvts:
-            lignes += (
-                "<div style='display:flex;justify-content:space-between;align-items:flex-start;"
-                "padding:10px 0;border-top:1px solid #1E2A3D;'>"
-                "<div style='display:flex;gap:12px;'>"
-                f"<span style='font-size:11.5px;color:#8a90a0;min-width:38px;'>{d}</span>"
-                f"<div><div style='font-size:13px;color:#c3ccdd;'>{lib}</div>"
-                f"<div style='font-size:10.5px;color:#8a90a0;'>{cpt}</div></div></div>"
-                f"<span style='font-size:13px;font-weight:600;color:{coul};'>{montant}</span></div>"
+            mvts = [
+                ("14/07", "Encaissement client A", "BNP · FR76 •••• 4021", "+ 84 000 €", "#5DCAA5"),
+                ("12/07", "Salaires & charges", "BNP · FR76 •••• 4021", "− 90 000 €", "#E0604A"),
+                ("10/07", "Encaissement client B", "Qonto · FR76 •••• 8830", "+ 52 300 €", "#5DCAA5"),
+                ("08/07", "Fournisseur logistique", "BNP · FR76 •••• 4021", "− 34 500 €", "#E0604A"),
+                ("05/07", "Remboursement TVA", "Crédit Agricole · FR76 •••• 6094", "+ 18 900 €", "#5DCAA5"),
+            ]
+            lignes = ""
+            for d, lib, cpt, montant, coul in mvts:
+                lignes += (
+                    "<div style='display:flex;justify-content:space-between;align-items:flex-start;"
+                    "padding:10px 0;border-top:1px solid #1E2A3D;'>"
+                    "<div style='display:flex;gap:12px;'>"
+                    f"<span style='font-size:11.5px;color:#8a90a0;min-width:38px;'>{d}</span>"
+                    f"<div><div style='font-size:13px;color:#c3ccdd;'>{lib}</div>"
+                    f"<div style='font-size:10.5px;color:#8a90a0;'>{cpt}</div></div></div>"
+                    f"<span style='font-size:13px;font-weight:600;color:{coul};'>{montant}</span></div>"
+                )
+            st.markdown(
+                "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
+                "padding:16px 18px;\">"
+                "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
+                + lignes + "</div>",
+                unsafe_allow_html=True,
             )
-        st.markdown(
-            "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-            "padding:16px 18px;\">"
-            "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
-            + lignes + "</div>",
-            unsafe_allow_html=True,
-        )
 
 
 def ecran_dashboard():
