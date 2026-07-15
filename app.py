@@ -1395,11 +1395,17 @@ def _onglet_ma_treso():
                 "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepUp'],"
                 "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
                 "[class*='st-key-hyp_val_'] input{text-align:left !important;}"
-                "</style>"
-                "<div style='font-size:16px;font-weight:600;color:#e8ecf4;'>Principales hypothèses</div>"
-                "<div style='font-size:12px;color:#8a90a0;margin-bottom:8px;'>Valeurs par défaut — modifiez la valeur et la date de paiement.</div>",
+                "</style>",
                 unsafe_allow_html=True,
             )
+            hh1, hh2 = st.columns([1.9, 1.3], vertical_alignment="center")
+            hh1.markdown(
+                "<div style='font-size:16px;font-weight:600;color:#e8ecf4;'>Principales hypothèses</div>"
+                "<div style='font-size:12px;color:#8a90a0;'>Valeurs par défaut — modifiez la valeur et la date de paiement.</div>",
+                unsafe_allow_html=True,
+            )
+            hh2.button("Recalculer la projection", type="primary",
+                       key="matreso_recalc", use_container_width=True)
             # En-têtes de colonnes (mêmes ratios que les lignes)
             he1, he2, _he3, he4 = st.columns([2.3, 1.4, 0.7, 1.6])
             he1.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>POSTE</div>", unsafe_allow_html=True)
@@ -1424,7 +1430,6 @@ def _onglet_ma_treso():
                 cu.markdown(f"<div style='color:#c3ccdd;font-size:13px;'>{unit}</div>", unsafe_allow_html=True)
                 cd.date_input(f"{poste} — date", value=d, key=f"hyp_date_{i}",
                               format="DD/MM/YYYY", label_visibility="collapsed")
-            st.button("Recalculer la projection", type="primary", key="matreso_recalc")
 
     with col_d:
         with st.container(key="mt_right"):
@@ -1468,7 +1473,7 @@ def _onglet_ma_treso():
             for d, lib, cpt, montant, coul in mvts:
                 lignes += (
                     "<div style='display:flex;justify-content:space-between;align-items:flex-start;"
-                    "padding:10px 0;border-top:1px solid #1E2A3D;'>"
+                    "padding:17px 0;border-top:1px solid #1E2A3D;'>"
                     "<div style='display:flex;gap:12px;'>"
                     f"<span style='font-size:11.5px;color:#8a90a0;min-width:38px;'>{d}</span>"
                     f"<div><div style='font-size:13px;color:#c3ccdd;'>{lib}</div>"
