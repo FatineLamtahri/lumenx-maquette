@@ -1080,47 +1080,6 @@ def _carte(html_interne, titre=None):
     )
 
 
-def _report_previsionnel():
-    """Onglet Prévisionnel : solde projeté, runway, courbe de prévision, mouvements."""
-    st.markdown(
-        """
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;">
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;display:flex;justify-content:space-between;">Solde projeté (fin de mois)
-              <span style="color:#28c76f;background:rgba(40,199,111,.12);border-radius:20px;padding:1px 7px;font-size:11px;">▲ 5,6 %</span></div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">1 310 000 €</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Runway (mois de trésorerie)</div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">14 mois</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Point bas projeté</div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">980 000 € <span style="font-size:13px;color:#8a90a0;font-weight:500;">· J+52</span></div></div>
-        </div>
-
-        <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px;margin-top:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:16px;font-weight:600;color:#e8ecf4;">Projection de trésorerie (90 j)</span><span style="font-size:13px;color:#8a90a0;">réel —— · prévision - - -</span></div>
-          <svg viewBox="0 0 320 120" preserveAspectRatio="none" style="width:100%;height:300px;margin-top:12px;">
-            <defs><linearGradient id="gp" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2D6BFF" stop-opacity="0.30"/><stop offset="1" stop-color="#2D6BFF" stop-opacity="0"/></linearGradient></defs>
-            <polygon fill="url(#gp)" points="0,80 40,72 80,76 120,58 160,64 160,120 0,120"/>
-            <polyline fill="none" stroke="#2D6BFF" stroke-width="2.5" points="0,80 40,72 80,76 120,58 160,64"/>
-            <polyline fill="none" stroke="#5A96FF" stroke-width="2.5" stroke-dasharray="6 5" points="160,64 200,92 240,60 280,48 320,34"/>
-            <line x1="160" y1="8" x2="160" y2="120" stroke="#3a4566" stroke-width="1" stroke-dasharray="3 3"/>
-          </svg>
-        </div>
-
-        <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;margin-top:12px;">
-          <div style="font-size:16px;font-weight:600;color:#e8ecf4;margin-bottom:6px;">Prochains mouvements majeurs</div>
-          <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:1px solid #20202c;"><span style="color:#fff;font-size:15px;">28/06 · Encaissement client Acme</span><span style="color:#28c76f;font-size:15px;font-weight:700;">+85 000 €</span></div>
-          <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:1px solid #20202c;"><span style="color:#fff;font-size:15px;">30/06 · Salaires</span><span style="color:#ff7a7a;font-size:15px;font-weight:700;">−142 000 €</span></div>
-          <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:1px solid #20202c;"><span style="color:#fff;font-size:15px;">05/07 · TVA</span><span style="color:#ff7a7a;font-size:15px;font-weight:700;">−38 000 €</span></div>
-          <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:1px solid #20202c;"><span style="color:#fff;font-size:15px;">10/07 · Abonnements clients</span><span style="color:#28c76f;font-size:15px;font-weight:700;">+60 000 €</span></div>
-          <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:1px solid #20202c;"><span style="color:#fff;font-size:15px;">15/07 · Loyer</span><span style="color:#ff7a7a;font-size:15px;font-weight:700;">−12 000 €</span></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 def _barre(label, valeur, pct, couleur="#2D6BFF"):
     return (
         "<div style='display:flex;align-items:center;gap:10px;margin:12px 0;'>"
@@ -1296,46 +1255,6 @@ def _report_placements():
     )
 
 
-def _report_global():
-    """Onglet Vue globale : synthèse agrégée (patrimoine, répartition, indicateurs)."""
-    row = "display:flex;justify-content:space-between;padding:13px 0;border-top:1px solid #20202c;font-size:15px;"
-    indicateurs = (
-        f"<div style='{row}'><span style='color:#c2c6d2;'>Trésorerie consolidée</span><span style='color:#fff;font-weight:700;'>1 240 000 €</span></div>"
-        f"<div style='{row}'><span style='color:#c2c6d2;'>Placements (rendement 3,4 %)</span><span style='color:#fff;font-weight:700;'>250 000 €</span></div>"
-        f"<div style='{row}'><span style='color:#c2c6d2;'>Encaissements 30 j</span><span style='color:#fff;font-weight:700;'>320 000 €</span></div>"
-        f"<div style='{row}'><span style='color:#c2c6d2;'>Flux net mensuel</span><span style='color:#28c76f;font-weight:700;'>+128 000 €</span></div>"
-        f"<div style='{row}'><span style='color:#c2c6d2;'>Runway (mois de trésorerie)</span><span style='color:#fff;font-weight:700;'>14 mois</span></div>"
-    )
-    st.markdown(
-        f"""
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;">
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Patrimoine total</div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">1 490 000 €</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Rendement global</div>
-            <div style="font-size:25px;font-weight:800;color:#9fc0ff;margin-top:6px;">3,4 %</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Flux net mensuel</div>
-            <div style="font-size:25px;font-weight:800;color:#28c76f;margin-top:6px;">+128 000 €</div></div>
-        </div>
-
-        <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;margin-top:12px;">
-          <div style="font-size:16px;font-weight:600;color:#e8ecf4;margin-bottom:12px;">Répartition du patrimoine</div>
-          <div style="display:flex;height:20px;border-radius:10px;overflow:hidden;">
-            <div style="width:83%;background:#2D6BFF;"></div><div style="width:17%;background:#28c76f;"></div></div>
-          <div style="display:flex;gap:24px;margin-top:12px;font-size:14px;color:#c2c6d2;">
-            <span><span style="color:#2D6BFF;">●</span> Disponible · 1 240 000 € (83 %)</span>
-            <span><span style="color:#28c76f;">●</span> Placé · 250 000 € (17 %)</span></div>
-        </div>
-
-        <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;margin-top:12px;">
-          <div style="font-size:16px;font-weight:600;color:#e8ecf4;margin-bottom:2px;">Indicateurs clés agrégés</div>{indicateurs}</div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 def _placeholder_onglet(titre, desc=""):
     """Contenu 'à venir' pour un onglet non encore construit (dans la DA)."""
     st.markdown(
@@ -1360,7 +1279,6 @@ def _onglet_ma_treso():
         # écart IDENTIQUE entre toutes les cartes des 2 colonnes (gap fixe)
         # écart Streamlit mis à 0 : c'est nous qui fixons une marge identique (18 px) sur chaque carte
         ".st-key-mt_grid [data-testid='stColumn'] > [data-testid='stVerticalBlock']{gap:0 !important;}"
-        ".st-key-mt_right > [data-testid='stVerticalBlock']{gap:0 !important;}"
         ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:18px;}"
         ".st-key-mt_hyp > [data-testid='stVerticalBlock']{gap:0.5rem !important;}"
         # bouton Recalculer : discret (translucide, petit), comme 'Gérer les comptes'
@@ -1442,61 +1360,60 @@ def _onglet_ma_treso():
                               format="DD/MM/YYYY", label_visibility="collapsed")
 
     with col_d:
-        with st.container(key="mt_right"):
-            with st.container(key="mt_comptes", height=100):
-                cc1, cc2 = st.columns([1.5, 1], vertical_alignment="center")
-                cc1.markdown(
-                    "<div style='font-size:15px;font-weight:600;color:#fff;'>Comptes connectés</div>"
-                    "<div style='margin-top:4px;'><span style='font-size:26px;font-weight:800;color:#fff;'>4</span>"
-                    "<span style='font-size:12.5px;color:#c3ccdd;margin-left:9px;'>comptes · 1 240 000 € agrégés</span></div>",
-                    unsafe_allow_html=True,
-                )
-                cc2.button("Gérer les comptes →", key="matreso_gerer",
-                           on_click=go, args=("espace_avenir",), use_container_width=True)
-            st.markdown(
-                """
-                <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:18px;height:152px;box-sizing:border-box;">
-                  <div style="font-size:15px;font-weight:600;color:#fff;">Période d'analyse</div>
-                  <div style="font-size:12px;color:#8a90a0;margin-bottom:12px;">Points extrêmes de trésorerie, agrégés par compte</div>
-                  <div style="display:flex;justify-content:space-between;">
-                    <div><div style="font-size:12.5px;color:#c3ccdd;">Point haut</div>
-                      <div style="font-size:18px;font-weight:700;color:#5DCAA5;">1 310 000 €</div>
-                      <div style="font-size:11.5px;color:#8a90a0;">12/03/2026</div></div>
-                    <div><div style="font-size:12.5px;color:#c3ccdd;">Point bas</div>
-                      <div style="font-size:18px;font-weight:700;color:#E0604A;">940 000 €</div>
-                      <div style="font-size:11.5px;color:#8a90a0;">28/01/2026</div></div>
-                    <div><div style="font-size:12.5px;color:#c3ccdd;">Amplitude</div>
-                      <div style="font-size:18px;font-weight:700;color:#fff;">370 000 €</div></div>
-                  </div>
-                </div>
-                """,
+        with st.container(key="mt_comptes", height=100):
+            cc1, cc2 = st.columns([1.5, 1], vertical_alignment="center")
+            cc1.markdown(
+                "<div style='font-size:15px;font-weight:600;color:#fff;'>Comptes connectés</div>"
+                "<div style='margin-top:4px;'><span style='font-size:26px;font-weight:800;color:#fff;'>4</span>"
+                "<span style='font-size:12.5px;color:#c3ccdd;margin-left:9px;'>comptes · 1 240 000 € agrégés</span></div>",
                 unsafe_allow_html=True,
             )
-            mvts = [
-                ("14/07", "Encaissement client A", "BNP · FR76 •••• 4021", "+ 84 000 €", "#5DCAA5"),
-                ("12/07", "Salaires & charges", "BNP · FR76 •••• 4021", "− 90 000 €", "#E0604A"),
-                ("10/07", "Encaissement client B", "Qonto · FR76 •••• 8830", "+ 52 300 €", "#5DCAA5"),
-                ("08/07", "Fournisseur logistique", "BNP · FR76 •••• 4021", "− 34 500 €", "#E0604A"),
-                ("05/07", "Remboursement TVA", "Crédit Agricole · FR76 •••• 6094", "+ 18 900 €", "#5DCAA5"),
-            ]
-            lignes = ""
-            for d, lib, cpt, montant, coul in mvts:
-                lignes += (
-                    "<div style='display:flex;justify-content:space-between;align-items:flex-start;"
-                    "padding:18px 0;border-top:1px solid #1E2A3D;'>"
-                    "<div style='display:flex;gap:12px;'>"
-                    f"<span style='font-size:11.5px;color:#8a90a0;min-width:38px;'>{d}</span>"
-                    f"<div><div style='font-size:13px;color:#c3ccdd;'>{lib}</div>"
-                    f"<div style='font-size:10.5px;color:#8a90a0;'>{cpt}</div></div></div>"
-                    f"<span style='font-size:13px;font-weight:600;color:{coul};'>{montant}</span></div>"
-                )
-            st.markdown(
-                "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-                "padding:16px 18px;margin-top:18px;height:405px;box-sizing:border-box;\">"
-                "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
-                + lignes + "</div>",
-                unsafe_allow_html=True,
+            cc2.button("Gérer les comptes →", key="matreso_gerer",
+                       on_click=go, args=("espace_avenir",), use_container_width=True)
+        st.markdown(
+            """
+            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:18px;height:152px;box-sizing:border-box;">
+              <div style="font-size:15px;font-weight:600;color:#fff;">Période d'analyse</div>
+              <div style="font-size:12px;color:#8a90a0;margin-bottom:12px;">Points extrêmes de trésorerie, agrégés par compte</div>
+              <div style="display:flex;justify-content:space-between;">
+                <div><div style="font-size:12.5px;color:#c3ccdd;">Point haut</div>
+                  <div style="font-size:18px;font-weight:700;color:#5DCAA5;">1 310 000 €</div>
+                  <div style="font-size:11.5px;color:#8a90a0;">12/03/2026</div></div>
+                <div><div style="font-size:12.5px;color:#c3ccdd;">Point bas</div>
+                  <div style="font-size:18px;font-weight:700;color:#E0604A;">940 000 €</div>
+                  <div style="font-size:11.5px;color:#8a90a0;">28/01/2026</div></div>
+                <div><div style="font-size:12.5px;color:#c3ccdd;">Amplitude</div>
+                  <div style="font-size:18px;font-weight:700;color:#fff;">370 000 €</div></div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        mvts = [
+            ("14/07", "Encaissement client A", "BNP · FR76 •••• 4021", "+ 84 000 €", "#5DCAA5"),
+            ("12/07", "Salaires & charges", "BNP · FR76 •••• 4021", "− 90 000 €", "#E0604A"),
+            ("10/07", "Encaissement client B", "Qonto · FR76 •••• 8830", "+ 52 300 €", "#5DCAA5"),
+            ("08/07", "Fournisseur logistique", "BNP · FR76 •••• 4021", "− 34 500 €", "#E0604A"),
+            ("05/07", "Remboursement TVA", "Crédit Agricole · FR76 •••• 6094", "+ 18 900 €", "#5DCAA5"),
+        ]
+        lignes = ""
+        for d, lib, cpt, montant, coul in mvts:
+            lignes += (
+                "<div style='display:flex;justify-content:space-between;align-items:flex-start;"
+                "padding:18px 0;border-top:1px solid #1E2A3D;'>"
+                "<div style='display:flex;gap:12px;'>"
+                f"<span style='font-size:11.5px;color:#8a90a0;min-width:38px;'>{d}</span>"
+                f"<div><div style='font-size:13px;color:#c3ccdd;'>{lib}</div>"
+                f"<div style='font-size:10.5px;color:#8a90a0;'>{cpt}</div></div></div>"
+                f"<span style='font-size:13px;font-weight:600;color:{coul};'>{montant}</span></div>"
             )
+        st.markdown(
+            "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
+            "padding:16px 18px;margin-top:18px;height:405px;box-sizing:border-box;\">"
+            "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
+            + lignes + "</div>",
+            unsafe_allow_html=True,
+        )
 
 
 def ecran_dashboard():
