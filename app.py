@@ -1268,6 +1268,45 @@ def _placeholder_onglet(titre, desc=""):
     )
 
 
+# Modèle détaillé des hypothèses (onglet 'Hypothèses').
+# (rowid, libellé, valeur, unité, pas, date, sens, indent, sync)
+#  sens : "rev" (revenu) / "chg" (charge)  ·  indent : 0 principal, 1 sous-poste
+#  sync : index (0..4) du poste jumeau dans 'Principales hypothèses' de Ma tréso, sinon None
+_HYP_ROWS = [
+    (0,  "CA récurrent",                210000, "€",       1000, dt.date(2026, 8, 5),  "rev", 0, 0),
+    (1,  "CA ponctuel",                  15000, "€",       1000, dt.date(2026, 8, 20), "rev", 0, 1),
+    (2,  "Charges variables",               28, "% du CA",    1, dt.date(2026, 8, 10), "chg", 0, 2),
+    (3,  "Charges externes récurrentes", 90000, "€",       1000, dt.date(2026, 8, 5),  "chg", 0, 3),
+    (4,  "Loyers & charges",             35000, "€",       1000, dt.date(2026, 8, 5),  "chg", 1, None),
+    (5,  "Énergie",                       8000, "€",        500, dt.date(2026, 8, 12), "chg", 1, None),
+    (6,  "Assurances",                    7000, "€",        500, dt.date(2026, 8, 15), "chg", 1, None),
+    (7,  "Honoraires",                   25000, "€",       1000, dt.date(2026, 8, 20), "chg", 1, None),
+    (8,  "Abonnements",                  15000, "€",        500, dt.date(2026, 8, 1),  "chg", 1, None),
+    (9,  "Charges fixes aléatoires",      5000, "€",        500, dt.date(2026, 8, 18), "chg", 0, None),
+    (10, "Charges internes récurrentes", 25000, "€",       1000, dt.date(2026, 8, 28), "chg", 0, 4),
+    (11, "Charges financières",           4000, "€",        500, dt.date(2026, 8, 25), "chg", 0, None),
+]
+# Correspondance index Ma tréso (0..4) -> rowid dans l'onglet Hypothèses
+_SYNC_MATRESO_TO_H2 = {0: 0, 1: 1, 2: 2, 3: 3, 4: 10}
+
+
+def _mirror_state(src, dst):
+    """Recopie la valeur d'un champ dans son jumeau (synchro tréso <-> hypothèses)."""
+    st.session_state[dst] = st.session_state[src]
+
+
+def _seed_hyp_state():
+    """Initialise l'état des champs d'hypothèses (une seule fois) pour les deux onglets.
+    Indispensable : on ne passe plus 'value=' aux widgets synchronisés, l'état pré-semé
+    sert de valeur initiale ET évite les avertissements Streamlit à l'écran."""
+    for rid, lbl, val, unit, pas, d, sens, indent, sync in _HYP_ROWS:
+        st.session_state.setdefault(f"h2_val_{rid}", val)
+        st.session_state.setdefault(f"h2_date_{rid}", d)
+        if sync is not None:
+            st.session_state.setdefault(f"hyp_val_{sync}", val)
+            st.session_state.setdefault(f"hyp_date_{sync}", d)
+
+
 def _onglet_ma_treso():
     """Onglet 'Ma tréso' : courbe d'évolution, comptes connectés, période d'analyse,
     derniers mouvements (banque + n° de compte), et hypothèses éditables."""
@@ -1354,10 +1393,15 @@ def _onglet_ma_treso():
                     f"<div style='color:#fff;font-size:13.5px;border-left:3px solid {barre};"
                     f"padding-left:10px;'>{poste}</div>",
                     unsafe_allow_html=True)
-                cv.number_input(poste, value=val, step=pas, key=f"hyp_val_{i}", label_visibility="collapsed")
+                cv.number_input(poste, step=pas, key=f"hyp_val_{i}",
+                                on_change=_mirror_state,
+                                args=(f"hyp_val_{i}", f"h2_val_{_SYNC_MATRESO_TO_H2[i]}"),
+                                label_visibility="collapsed")
                 cu.markdown(f"<div style='color:#c3ccdd;font-size:13px;'>{unit}</div>", unsafe_allow_html=True)
-                cd.date_input(f"{poste} — date", value=d, key=f"hyp_date_{i}",
-                              format="DD/MM/YYYY", label_visibility="collapsed")
+                cd.date_input(f"{poste} — date", key=f"hyp_date_{i}",
+                              format="DD/MM/YYYY", on_change=_mirror_state,
+                              args=(f"hyp_date_{i}", f"h2_date_{_SYNC_MATRESO_TO_H2[i]}"),
+                              label_visibility="collapsed")
 
     with col_d:
         with st.container(key="mt_comptes"):
@@ -1416,6 +1460,65 @@ def _onglet_ma_treso():
         )
 
 
+def _onglet_hypotheses():
+    """Onglet 'Hypothèses' : version détaillée des hypothèses de projection.
+    Même format que 'Principales hypothèses'. Les 5 postes marqués ⇄ sont synchronisés
+    avec Ma tréso (modif. répercutée des deux côtés via _mirror_state)."""
+    st.markdown(
+        "<style>"
+        ".st-key-hyp2_card{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 20px;}"
+        ".st-key-hyp2_card [data-testid='stVerticalBlock']{gap:0.45rem !important;}"
+        # champs valeur : on masque les boutons +/- et on aligne le texte à gauche
+        "[class*='st-key-h2_val_'] button[data-testid='stNumberInputStepUp'],"
+        "[class*='st-key-h2_val_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
+        "[class*='st-key-h2_val_'] input{text-align:left !important;}"
+        # bouton Recalculer : même style discret que Ma tréso
+        ".st-key-hyp2_recalc button{background:rgba(45,107,255,0.12) !important;"
+        "border:1px solid rgba(45,107,255,0.55) !important;color:#5A96FF !important;font-weight:600 !important;"
+        "padding:5px 10px !important;font-size:13px !important;}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
+    with st.container(key="hyp2_card"):
+        hh1, hh2 = st.columns([3, 1], vertical_alignment="center")
+        hh1.markdown(
+            "<div style='font-size:16px;font-weight:600;color:#e8ecf4;'>Hypothèses</div>"
+            "<div style='font-size:12px;color:#8a90a0;'>Valeurs et dates de projection. "
+            "Les postes ⇄ sont partagés avec « Ma tréso ».</div>",
+            unsafe_allow_html=True,
+        )
+        hh2.button("Recalculer la projection", type="primary",
+                   key="hyp2_recalc", use_container_width=True)
+        he1, he2, _he3, he4 = st.columns([2.6, 1.4, 0.7, 1.6])
+        he1.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>POSTE</div>", unsafe_allow_html=True)
+        he2.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>VALEUR</div>", unsafe_allow_html=True)
+        he4.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>DATE DE PAIEMENT</div>", unsafe_allow_html=True)
+        for rid, lbl, val, unit, pas, d, sens, indent, sync in _HYP_ROWS:
+            barre = "#5DCAA5" if sens == "rev" else "#E0604A"
+            pad = 10 + indent * 22
+            badge = " <span style='color:#2D6BFF;font-size:12px;'>⇄</span>" if sync is not None else ""
+            cp, cv, cu, cd = st.columns([2.6, 1.4, 0.7, 1.6], vertical_alignment="center")
+            cp.markdown(
+                f"<div style='color:#fff;font-size:13.5px;border-left:3px solid {barre};"
+                f"padding-left:{pad}px;'>{lbl}{badge}</div>",
+                unsafe_allow_html=True)
+            if sync is not None:
+                cv.number_input(lbl, step=pas, key=f"h2_val_{rid}",
+                                on_change=_mirror_state,
+                                args=(f"h2_val_{rid}", f"hyp_val_{sync}"),
+                                label_visibility="collapsed")
+                cd.date_input(f"{lbl} — date", key=f"h2_date_{rid}",
+                              format="DD/MM/YYYY", on_change=_mirror_state,
+                              args=(f"h2_date_{rid}", f"hyp_date_{sync}"),
+                              label_visibility="collapsed")
+            else:
+                cv.number_input(lbl, step=pas, key=f"h2_val_{rid}",
+                                label_visibility="collapsed")
+                cd.date_input(f"{lbl} — date", key=f"h2_date_{rid}",
+                              format="DD/MM/YYYY", label_visibility="collapsed")
+            cu.markdown(f"<div style='color:#c3ccdd;font-size:13px;'>{unit}</div>", unsafe_allow_html=True)
+
+
 def ecran_dashboard():
     """Tableau de bord : 4 onglets horizontaux (Ma tréso, Compte de résultat cash,
     Smart tréso, Smart allocation). Le Compte de résultat cash a 4 sous-onglets
@@ -1448,10 +1551,13 @@ def ecran_dashboard():
         "</style>",
         unsafe_allow_html=True,
     )
-    top = st.tabs(["Ma tréso", "Compte de résultat cash", "Smart tréso", "Smart allocation"])
+    _seed_hyp_state()
+    top = st.tabs(["Ma tréso", "Hypothèses", "Compte de résultat cash", "Smart tréso", "Smart allocation"])
     with top[0]:
         _onglet_ma_treso()
     with top[1]:
+        _onglet_hypotheses()
+    with top[2]:
         sub = st.pills(
             "Sous-onglets du compte de résultat cash",
             ["Vue d'ensemble", "Charges Tracker", "Fiscalité Tracker", "Revenu Tracker"],
@@ -1467,12 +1573,12 @@ def ecran_dashboard():
                                 "Suivi du chiffre d'affaires récurrent vs variable / aléatoire. À venir.")
         else:  # Vue d'ensemble
             _report_flux()
-    with top[2]:
+    with top[3]:
         _placeholder_onglet(
             "Smart Tréso",
             "Allocation de la trésorerie en poches (fonctionnement, précaution, "
             "investissement, legacy). À venir.")
-    with top[3]:
+    with top[4]:
         _report_placements()
 
 
