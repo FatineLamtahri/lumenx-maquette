@@ -1495,12 +1495,13 @@ def _onglet_hypotheses():
         he4.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>DATE DE PAIEMENT</div>", unsafe_allow_html=True)
         for rid, lbl, val, unit, pas, d, sens, indent, sync in _HYP_ROWS:
             barre = "#5DCAA5" if sens == "rev" else "#E0604A"
-            pad = 10 + indent * 22
+            marge = indent * 30
             badge = " <span style='color:#2D6BFF;font-size:12px;'>⇄</span>" if sync is not None else ""
+            couleur = "#fff" if indent == 0 else "#c3ccdd"
             cp, cv, cu, cd = st.columns([2.6, 1.4, 0.7, 1.6], vertical_alignment="center")
             cp.markdown(
-                f"<div style='color:#fff;font-size:13.5px;border-left:3px solid {barre};"
-                f"padding-left:{pad}px;'>{lbl}{badge}</div>",
+                f"<div style='color:{couleur};font-size:13.5px;border-left:3px solid {barre};"
+                f"margin-left:{marge}px;padding-left:10px;'>{lbl}{badge}</div>",
                 unsafe_allow_html=True)
             if sync is not None:
                 cv.number_input(lbl, step=pas, key=f"h2_val_{rid}",
