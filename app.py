@@ -1279,7 +1279,7 @@ def _onglet_ma_treso():
         # Gap auto de Streamlit neutralisé (=0) : l'écart entre les cartes est fixé
         # par le margin-top de CHAQUE carte (voir plus bas), pas ici.
         ".st-key-mt_grid [data-testid='stColumn'] > [data-testid='stVerticalBlock']{gap:0 !important;}"
-        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:10px;height:500px !important;box-sizing:border-box;}"
+        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:20px;height:500px !important;box-sizing:border-box;}"
         ".st-key-mt_hyp > [data-testid='stVerticalBlock']{gap:0.5rem !important;}"
         # bouton Recalculer : discret (translucide, petit), comme 'Gérer les comptes'
         ".st-key-mt_hyp .stButton button{background:rgba(45,107,255,0.12) !important;"
