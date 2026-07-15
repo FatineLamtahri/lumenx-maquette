@@ -1349,6 +1349,111 @@ def _placeholder_onglet(titre, desc=""):
     )
 
 
+def _onglet_ma_treso():
+    """Onglet 'Ma tréso' : courbe d'évolution, comptes connectés, période d'analyse,
+    derniers mouvements (banque + n° de compte), et hypothèses éditables."""
+    col_g, col_d = st.columns([1.2, 1], gap="medium")
+    with col_g:
+        st.markdown(
+            """
+            <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:16px;font-weight:600;color:#e8ecf4;">Évolution de la trésorerie</span>
+                <span style="font-size:11px;color:#8a90a0;">90 j</span></div>
+              <div style="font-size:12px;color:#8a90a0;margin-top:2px;">Balance agrégée des comptes courants</div>
+              <div style="font-size:24px;font-weight:800;color:#fff;margin-top:8px;">1 240 000 €
+                <span style="font-size:13px;color:#28c76f;font-weight:600;">▲ +4,2 %</span></div>
+              <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:210px;margin-top:10px;">
+                <defs><linearGradient id="gdmt" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2D6BFF" stop-opacity="0.30"/><stop offset="1" stop-color="#2D6BFF" stop-opacity="0"/></linearGradient></defs>
+                <polygon fill="url(#gdmt)" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 270,34 300,40 320,28 320,110 0,110"/>
+                <polyline fill="none" stroke="#2D6BFF" stroke-width="2.5" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 270,34 300,40 320,28"/>
+              </svg>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<div style='margin-top:14px;font-size:16px;font-weight:600;color:#e8ecf4;'>Principales hypothèses</div>"
+            "<div style='font-size:12px;color:#8a90a0;margin-bottom:6px;'>Valeurs par défaut — modifiez la valeur et la date de paiement.</div>",
+            unsafe_allow_html=True,
+        )
+        # (poste, valeur par défaut, unité, pas, date de paiement par défaut)
+        hyp = [
+            ("CA récurrent", 210000, "€", 1000, dt.date(2026, 8, 5)),
+            ("CA ponctuel", 15000, "€", 1000, dt.date(2026, 8, 20)),
+            ("Charges variables", 28, "% du CA", 1, dt.date(2026, 8, 10)),
+            ("Charges externes récurrentes", 90000, "€", 1000, dt.date(2026, 8, 5)),
+            ("Charges internes récurrentes", 25000, "€", 1000, dt.date(2026, 8, 28)),
+        ]
+        for i, (poste, val, unit, pas, d) in enumerate(hyp):
+            cp, cv, cu, cd = st.columns([2.1, 1.5, 0.7, 1.7], vertical_alignment="center")
+            cp.markdown(f"<div style='color:#fff;font-size:13.5px;'>🟡 {poste}</div>", unsafe_allow_html=True)
+            cv.number_input(poste, value=val, step=pas, key=f"hyp_val_{i}", label_visibility="collapsed")
+            cu.markdown(f"<div style='color:#c3ccdd;font-size:13px;'>{unit}</div>", unsafe_allow_html=True)
+            cd.date_input(f"{poste} — date", value=d, key=f"hyp_date_{i}",
+                          format="DD/MM/YYYY", label_visibility="collapsed")
+        st.button("Recalculer la projection", type="primary", key="matreso_recalc")
+
+    with col_d:
+        st.markdown(
+            """
+            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;">
+              <div style="font-size:15px;font-weight:600;color:#fff;">Comptes connectés</div>
+              <div style="display:flex;align-items:baseline;gap:10px;margin-top:8px;">
+                <span style="font-size:30px;font-weight:800;color:#fff;">4</span>
+                <span style="font-size:13px;color:#c3ccdd;">comptes · 1 240 000 € agrégés</span></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.button("Gérer les comptes →", key="matreso_gerer", on_click=go, args=("espace_avenir",))
+        st.markdown(
+            """
+            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:12px;">
+              <div style="font-size:15px;font-weight:600;color:#fff;">Période d'analyse</div>
+              <div style="font-size:12px;color:#8a90a0;margin-bottom:12px;">Points extrêmes de trésorerie, agrégés par compte</div>
+              <div style="display:flex;justify-content:space-between;">
+                <div><div style="font-size:12.5px;color:#c3ccdd;">Point haut</div>
+                  <div style="font-size:18px;font-weight:700;color:#5DCAA5;">1 310 000 €</div>
+                  <div style="font-size:11.5px;color:#8a90a0;">12/03/2026</div></div>
+                <div><div style="font-size:12.5px;color:#c3ccdd;">Point bas</div>
+                  <div style="font-size:18px;font-weight:700;color:#E0604A;">940 000 €</div>
+                  <div style="font-size:11.5px;color:#8a90a0;">28/01/2026</div></div>
+                <div><div style="font-size:12.5px;color:#c3ccdd;">Amplitude</div>
+                  <div style="font-size:18px;font-weight:700;color:#fff;">370 000 €</div></div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        mvts = [
+            ("14/07", "Encaissement client A", "BNP · FR76 •••• 4021", "+ 84 000 €", "#5DCAA5"),
+            ("12/07", "Salaires & charges", "BNP · FR76 •••• 4021", "− 90 000 €", "#E0604A"),
+            ("10/07", "Encaissement client B", "Qonto · FR76 •••• 8830", "+ 52 300 €", "#5DCAA5"),
+            ("08/07", "Fournisseur logistique", "BNP · FR76 •••• 4021", "− 34 500 €", "#E0604A"),
+            ("05/07", "Remboursement TVA", "Crédit Agricole · FR76 •••• 6094", "+ 18 900 €", "#5DCAA5"),
+        ]
+        lignes = ""
+        for d, lib, cpt, montant, coul in mvts:
+            lignes += (
+                "<div style='display:flex;justify-content:space-between;align-items:flex-start;"
+                "padding:10px 0;border-top:1px solid #1E2A3D;'>"
+                "<div style='display:flex;gap:12px;'>"
+                f"<span style='font-size:11.5px;color:#8a90a0;min-width:38px;'>{d}</span>"
+                f"<div><div style='font-size:13px;color:#c3ccdd;'>{lib}</div>"
+                f"<div style='font-size:10.5px;color:#8a90a0;'>{cpt}</div></div></div>"
+                f"<span style='font-size:13px;font-weight:600;color:{coul};'>{montant}</span></div>"
+            )
+        st.markdown(
+            "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
+            "padding:16px 18px;margin-top:12px;\">"
+            "<div style='font-size:15px;font-weight:600;color:#fff;'>5 derniers mouvements</div>"
+            "<div style='font-size:12px;color:#8a90a0;margin-bottom:2px;'>Date · libellé · compte associé</div>"
+            + lignes + "</div>",
+            unsafe_allow_html=True,
+        )
+
+
 def ecran_dashboard():
     """Tableau de bord : 4 onglets horizontaux (Ma tréso, Compte de résultat cash,
     Smart tréso, Smart allocation). Le Compte de résultat cash a 4 sous-onglets
@@ -1383,51 +1488,7 @@ def ecran_dashboard():
     )
     top = st.tabs(["Ma tréso", "Compte de résultat cash", "Smart tréso", "Smart allocation"])
     with top[0]:
-        st.markdown(
-            """
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;">
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;display:flex;justify-content:space-between;">Trésorerie consolidée
-              <span style="color:#28c76f;background:rgba(40,199,111,.12);border-radius:20px;padding:1px 7px;font-size:11px;">▲ 4,2 %</span></div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">1 240 000 €</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Encaissements 30 j</div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">320 k€</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Comptes connectés</div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">4</div></div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-top:12px;">
-          <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:16px;font-weight:600;color:#e8ecf4;">Évolution de la trésorerie</span><span style="font-size:11px;color:#8a90a0;">90 j</span></div>
-            <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:380px;margin-top:12px;">
-              <defs><linearGradient id="gd" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2D6BFF" stop-opacity="0.35"/><stop offset="1" stop-color="#2D6BFF" stop-opacity="0"/></linearGradient></defs>
-              <polygon fill="url(#gd)" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 270,34 300,40 320,28 320,110 0,110"/>
-              <polyline fill="none" stroke="#2D6BFF" stroke-width="2.5" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 270,34 300,40 320,28"/>
-            </svg></div>
-          <div style="background:#12121c;border:1px solid #2a2a3a;border-radius:16px;padding:18px;min-height:440px;display:flex;flex-direction:column;">
-            <div style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:#e8ecf4;"><span style="width:16px;height:16px;border-radius:50%;background:#2D6BFF;display:inline-block;"></span>Placer mon excédent</div>
-            <div style="font-size:28px;font-weight:800;color:#fff;margin:14px 0 2px;">250 000 €</div>
-            <div style="display:flex;justify-content:space-between;font-size:14px;color:#9aa4b5;margin-bottom:16px;">Disponible <span style="color:#dfe5f0;">500 000 €</span></div>
-            <div style="display:flex;gap:6px;">
-              <span style="flex:1;text-align:center;font-size:14px;color:#c2c6d2;background:#1c1c2a;border-radius:8px;padding:9px 0;">25%</span>
-              <span style="flex:1;text-align:center;font-size:14px;color:#fff;background:#2D6BFF;border-radius:8px;padding:9px 0;">50%</span>
-              <span style="flex:1;text-align:center;font-size:14px;color:#c2c6d2;background:#1c1c2a;border-radius:8px;padding:9px 0;">75%</span>
-              <span style="flex:1;text-align:center;font-size:14px;color:#c2c6d2;background:#1c1c2a;border-radius:8px;padding:9px 0;">100%</span></div>
-            <div style="flex:1;"></div>
-            <div style="text-align:center;font-size:15px;font-weight:600;color:#fff;background:#2D6BFF;border-radius:9px;padding:13px 0;">Simuler un placement</div></div>
-        </div>
-
-        <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;margin-top:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:16px;font-weight:600;color:#e8ecf4;">Comptes bancaires</span><span style="font-size:14px;color:#2D6BFF;">Voir tout</span></div>
-          <div style="display:flex;justify-content:space-between;padding:24px 0;border-top:1px solid #20202c;margin-top:6px;"><span style="color:#fff;font-size:15px;">Compte courant — BNP <span style='color:#8a90a0;'>· FR76 •••• 4021</span></span><span style="color:#fff;font-size:15px;font-weight:700;">540 000 €</span></div>
-          <div style="display:flex;justify-content:space-between;padding:24px 0;border-top:1px solid #20202c;"><span style="color:#fff;font-size:15px;">Livret société — Qonto <span style='color:#8a90a0;'>· FR76 •••• 8830</span></span><span style="color:#fff;font-size:15px;font-weight:700;">420 000 €</span></div>
-          <div style="display:flex;justify-content:space-between;padding:24px 0;border-top:1px solid #20202c;"><span style="color:#fff;font-size:15px;">Compte épargne — Crédit Agricole <span style='color:#8a90a0;'>· FR76 •••• 6094</span></span><span style="color:#fff;font-size:15px;font-weight:700;">280 000 €</span></div>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
+        _onglet_ma_treso()
     with top[1]:
         sub = st.pills(
             "Sous-onglets du compte de résultat cash",
