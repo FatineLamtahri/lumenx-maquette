@@ -1409,7 +1409,7 @@ def _onglet_ma_treso():
             )
         st.markdown(
             "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-            "padding:16px 18px;margin-top:20px;height:438px;box-sizing:border-box;\">"
+            "padding:16px 18px;margin-top:25px;height:438px;box-sizing:border-box;\">"
             "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
             + lignes + "</div>",
             unsafe_allow_html=True,
