@@ -1378,7 +1378,12 @@ def _onglet_ma_treso():
             unsafe_allow_html=True,
         )
         st.markdown(
-            "<div style='margin-top:14px;font-size:16px;font-weight:600;color:#e8ecf4;'>Principales hypothèses</div>"
+            "<style>"
+            "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepUp'],"
+            "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
+            "[class*='st-key-hyp_val_'] input{text-align:left !important;}"
+            "</style>"
+            "<div style='margin-top:8px;font-size:16px;font-weight:600;color:#e8ecf4;'>Principales hypothèses</div>"
             "<div style='font-size:12px;color:#8a90a0;margin-bottom:6px;'>Valeurs par défaut — modifiez la valeur et la date de paiement.</div>",
             unsafe_allow_html=True,
         )
@@ -1417,14 +1422,14 @@ def _onglet_ma_treso():
             cc1.markdown(
                 "<div style='font-size:15px;font-weight:600;color:#fff;'>Comptes connectés</div>"
                 "<div style='margin-top:4px;'><span style='font-size:26px;font-weight:800;color:#fff;'>4</span>"
-                "<span style='font-size:12.5px;color:#c3ccdd;'> comptes · 1 240 000 € agrégés</span></div>",
+                "<span style='font-size:12.5px;color:#c3ccdd;margin-left:9px;'>comptes · 1 240 000 € agrégés</span></div>",
                 unsafe_allow_html=True,
             )
             cc2.button("Gérer les comptes →", key="matreso_gerer",
                        on_click=go, args=("espace_avenir",), use_container_width=True)
         st.markdown(
             """
-            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:12px;">
+            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;">
               <div style="font-size:15px;font-weight:600;color:#fff;">Période d'analyse</div>
               <div style="font-size:12px;color:#8a90a0;margin-bottom:12px;">Points extrêmes de trésorerie, agrégés par compte</div>
               <div style="display:flex;justify-content:space-between;">
@@ -1461,7 +1466,7 @@ def _onglet_ma_treso():
             )
         st.markdown(
             "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-            "padding:16px 18px;margin-top:12px;\">"
+            "padding:16px 18px;\">"
             "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
             + lignes + "</div>",
             unsafe_allow_html=True,
