@@ -1216,12 +1216,15 @@ def _crc_detail_html(r):
     )
 
 
-def _crc_kpi_html(rows):
-    """Panneau KPI : charges fixes cumulées 1/3/6 mois, ratio CA/charges fixes, ARR."""
-    f1 = _CRC_CH_FIX
-    hist = [r for r in rows if r["hist"]]
-    ratio = (sum(r["ca"] for r in hist[-3:]) / 3.0) / _CRC_CH_FIX
-    arr = hist[-1]["ca_rec"] * 12
+def _crc_kpi_html(rows, sel):
+    """Panneau KPI calculés pour le mois sélectionné : charges fixes cumulées 1/3/6 mois,
+    ratio CA/charges fixes (3 mois glissants) et ARR (CA récurrent du mois annualisé)."""
+    m = rows[sel]
+    f1 = m["ch_rec"]
+    lo = max(0, sel - 2)
+    fen = rows[lo:sel + 1]
+    ratio = (sum(r["ca"] for r in fen) / len(fen)) / f1
+    arr = m["ca_rec"] * 12
     ratio_s = f"{ratio:.1f}".replace(".", ",")
     arr_s = f"{arr/1000.0:.2f}".replace(".", ",")
 
@@ -1236,7 +1239,6 @@ def _crc_kpi_html(rows):
         '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:58px;">'
         '<div style="font-size:15px;font-weight:700;color:#e8ecf4;">Indicateurs clés</div>'
         '<div style="font-size:12px;color:#c3ccdd;margin-top:12px;">Charges fixes cumulées</div>'
-        '<div style="font-size:10.5px;color:#5a6478;">base 119 k€/mois · récurrentes + internes + financières</div>'
         + barre("1 mois", f1, 25) + barre("3 mois", f1 * 3, 75) + barre("6 mois", f1 * 6, 150)
         + '<div style="border-top:1px solid #1E2A3D;margin-top:14px;padding-top:12px;font-size:12px;color:#c3ccdd;">CA / charges fixes · moy. 3 mois</div>'
         + '<div style="font-size:24px;font-weight:800;color:#5DCAA5;margin-top:2px;">' + ratio_s + '×</div>'
@@ -1262,7 +1264,7 @@ def _report_flux():
         st.markdown(_crc_svg(rows, sel), unsafe_allow_html=True)
         st.markdown(_crc_detail_html(rows[sel]), unsafe_allow_html=True)
     with col_r:
-        st.markdown(_crc_kpi_html(rows), unsafe_allow_html=True)
+        st.markdown(_crc_kpi_html(rows, sel), unsafe_allow_html=True)
 
 
 def _ligne_budget(poste, budget, reel, ecart, coul):
