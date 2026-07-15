@@ -1336,10 +1336,23 @@ def _report_global():
     )
 
 
+def _placeholder_onglet(titre, desc=""):
+    """Contenu 'à venir' pour un onglet non encore construit (dans la DA)."""
+    st.markdown(
+        "<div style='display:flex;flex-direction:column;align-items:center;justify-content:center;"
+        "min-height:340px;color:#8a93ad;text-align:center;background:#0E0E16;border:1px solid #20202c;"
+        "border-radius:16px;margin-top:14px;'>"
+        "<div style='font-size:40px;margin-bottom:10px;'>🚧</div>"
+        f"<div style=\"font-family:'Fraunces',serif;font-size:24px;color:#fff;\">{titre}</div>"
+        f"<div style='font-size:14px;margin-top:8px;max-width:540px;'>{desc}</div></div>",
+        unsafe_allow_html=True,
+    )
+
+
 def ecran_dashboard():
-    """Tableau de bord de l'espace client : onglets de reporting (Synthèse + 3).
-    Barre latérale + KPI + courbe + placement + comptes (Synthèse), puis
-    Prévisionnel, Flux & catégories, Budget vs réalisé. Données fictives."""
+    """Tableau de bord : 4 onglets horizontaux (Ma tréso, Compte de résultat cash,
+    Smart tréso, Smart allocation). Le Compte de résultat cash a 4 sous-onglets
+    en pilules (Vue d'ensemble, Charges, Fiscalité, Revenu). Données fictives."""
     sidebar_espace("dashboard")
     profil = st.session_state.profil or "—"
     st.markdown(
@@ -1368,8 +1381,8 @@ def ecran_dashboard():
         "</style>",
         unsafe_allow_html=True,
     )
-    onglets = st.tabs(["Synthèse", "Prévisionnel", "Flux & catégories", "Budget vs réalisé", "Placements", "Vue globale"])
-    with onglets[0]:
+    top = st.tabs(["Ma tréso", "Compte de résultat cash", "Smart tréso", "Smart allocation"])
+    with top[0]:
         st.markdown(
             """
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;">
@@ -1415,16 +1428,29 @@ def ecran_dashboard():
         """,
             unsafe_allow_html=True,
         )
-    with onglets[1]:
-        _report_previsionnel()
-    with onglets[2]:
-        _report_flux()
-    with onglets[3]:
-        _report_budget()
-    with onglets[4]:
+    with top[1]:
+        sub = st.pills(
+            "Sous-onglets du compte de résultat cash",
+            ["Vue d'ensemble", "Charges Tracker", "Fiscalité Tracker", "Revenu Tracker"],
+            default="Vue d'ensemble", label_visibility="collapsed", key="crc_sub",
+        )
+        if sub == "Charges Tracker":
+            _report_budget()
+        elif sub == "Fiscalité Tracker":
+            _placeholder_onglet("Fiscalité Tracker",
+                                "Suivi des charges et échéances fiscales (IS, TVA, CFE…). À venir.")
+        elif sub == "Revenu Tracker":
+            _placeholder_onglet("Revenu Tracker",
+                                "Suivi du chiffre d'affaires récurrent vs variable / aléatoire. À venir.")
+        else:  # Vue d'ensemble
+            _report_flux()
+    with top[2]:
+        _placeholder_onglet(
+            "Smart Tréso",
+            "Allocation de la trésorerie en poches (fonctionnement, précaution, "
+            "investissement, legacy). À venir.")
+    with top[3]:
         _report_placements()
-    with onglets[5]:
-        _report_global()
 
 
 def espace_profil():
