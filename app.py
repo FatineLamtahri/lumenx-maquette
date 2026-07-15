@@ -1279,13 +1279,13 @@ def _onglet_ma_treso():
         # Gap auto de Streamlit neutralisé (=0) : l'écart entre les cartes est fixé
         # par le margin-top de CHAQUE carte (voir plus bas), pas ici.
         ".st-key-mt_grid [data-testid='stColumn'] > [data-testid='stVerticalBlock']{gap:0 !important;}"
-        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:20px;height:400px;box-sizing:border-box;}"
+        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:20px;height:400px !important;box-sizing:border-box;}"
         ".st-key-mt_hyp > [data-testid='stVerticalBlock']{gap:0.5rem !important;}"
         # bouton Recalculer : discret (translucide, petit), comme 'Gérer les comptes'
         ".st-key-mt_hyp .stButton button{background:rgba(45,107,255,0.12) !important;"
         "border:1px solid rgba(45,107,255,0.55) !important;color:#5A96FF !important;font-weight:600 !important;"
         "padding:5px 10px !important;font-size:13px !important;}"
-        ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;height:100px;box-sizing:border-box;}"
+        ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;height:100px !important;box-sizing:border-box;}"
         ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
         "border:1px solid #2D6BFF !important;color:#5A96FF !important;}"
         "</style>",
