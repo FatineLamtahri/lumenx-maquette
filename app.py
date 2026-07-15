@@ -1372,7 +1372,7 @@ def _onglet_ma_treso():
                        on_click=go, args=("espace_avenir",), use_container_width=True)
         st.markdown(
             """
-            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:0px;height:150px;box-sizing:border-box;">
+            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:20px;height:150px;box-sizing:border-box;">
               <div style="font-size:15px;font-weight:600;color:#fff;">Période d'analyse</div>
               <div style="font-size:12px;color:#8a90a0;margin-bottom:12px;">Points extrêmes de trésorerie, agrégés par compte</div>
               <div style="display:flex;justify-content:space-between;">
@@ -1409,7 +1409,7 @@ def _onglet_ma_treso():
             )
         st.markdown(
             "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-            "padding:16px 18px;margin-top:0px;height:438px;box-sizing:border-box;\">"
+            "padding:16px 18px;margin-top:20px;height:438px;box-sizing:border-box;\">"
             "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
             + lignes + "</div>",
             unsafe_allow_html=True,
@@ -1428,7 +1428,7 @@ def ecran_dashboard():
           <div style="display:flex;align-items:flex-end;gap:14px;"><span style="font-family:'Fraunces',serif;font-size:42px;font-weight:700;color:#fff;line-height:1;">Tableau de bord</span>
             <span style="font-size:15px;color:#cdd8f5;background:rgba(45,107,255,.14);border:1px solid #2D6BFF;border-radius:22px;padding:6px 16px;">Profil · {profil}</span></div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:15px;color:#a9c0f0;background:rgba(45,107,255,.10);border-left:3px solid #2D6BFF;padding:10px 14px;border-radius:0 8px 8px 0;">🧪 Données de démonstration · jeu de transactions fictif · build TEST-A</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:15px;color:#a9c0f0;background:rgba(45,107,255,.10);border-left:3px solid #2D6BFF;padding:10px 14px;border-radius:0 8px 8px 0;">🧪 Données de démonstration · jeu de transactions fictif</div>
         """,
         unsafe_allow_html=True,
     )
