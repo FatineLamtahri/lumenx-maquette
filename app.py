@@ -1359,14 +1359,19 @@ def _onglet_ma_treso():
             <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:16px;font-weight:600;color:#e8ecf4;">Évolution de la trésorerie</span>
-                <span style="font-size:11px;color:#8a90a0;">90 j</span></div>
+                <span style="font-size:11px;color:#8a90a0;">16/04/2026 → 15/07/2026</span></div>
               <div style="font-size:12px;color:#8a90a0;margin-top:2px;">Balance agrégée des comptes courants</div>
               <div style="font-size:24px;font-weight:800;color:#fff;margin-top:8px;">1 240 000 €
                 <span style="font-size:13px;color:#28c76f;font-weight:600;">▲ +4,2 %</span></div>
-              <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:210px;margin-top:10px;">
+              <div style="display:flex;gap:18px;font-size:11px;color:#c3ccdd;margin-top:6px;">
+                <span><span style="color:#2D6BFF;font-weight:700;">━</span> Historique</span>
+                <span><span style="color:#5DCAA5;font-weight:700;">╌╌</span> Projection</span></div>
+              <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:200px;margin-top:8px;">
                 <defs><linearGradient id="gdmt" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2D6BFF" stop-opacity="0.30"/><stop offset="1" stop-color="#2D6BFF" stop-opacity="0"/></linearGradient></defs>
-                <polygon fill="url(#gdmt)" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 270,34 300,40 320,28 320,110 0,110"/>
-                <polyline fill="none" stroke="#2D6BFF" stroke-width="2.5" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 270,34 300,40 320,28"/>
+                <polygon fill="url(#gdmt)" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 240,110 0,110"/>
+                <polyline fill="none" stroke="#2D6BFF" stroke-width="2.5" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50"/>
+                <polyline fill="none" stroke="#5DCAA5" stroke-width="2.5" stroke-dasharray="7 5" points="240,50 270,40 300,30 320,26"/>
+                <line x1="240" y1="8" x2="240" y2="110" stroke="#8a90a0" stroke-width="0.7" stroke-dasharray="3 4"/>
               </svg>
             </div>
             """,
@@ -1406,17 +1411,22 @@ def _onglet_ma_treso():
 
     with col_d:
         st.markdown(
-            """
-            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;">
-              <div style="font-size:15px;font-weight:600;color:#fff;">Comptes connectés</div>
-              <div style="display:flex;align-items:baseline;gap:10px;margin-top:8px;">
-                <span style="font-size:30px;font-weight:800;color:#fff;">4</span>
-                <span style="font-size:13px;color:#c3ccdd;">comptes · 1 240 000 € agrégés</span></div>
-            </div>
-            """,
+            "<style>.st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;"
+            "border-radius:16px;padding:14px 18px;}"
+            ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
+            "border:1px solid #2D6BFF !important;color:#5A96FF !important;}</style>",
             unsafe_allow_html=True,
         )
-        st.button("Gérer les comptes →", key="matreso_gerer", on_click=go, args=("espace_avenir",))
+        with st.container(key="mt_comptes"):
+            cc1, cc2 = st.columns([1.5, 1], vertical_alignment="center")
+            cc1.markdown(
+                "<div style='font-size:15px;font-weight:600;color:#fff;'>Comptes connectés</div>"
+                "<div style='margin-top:4px;'><span style='font-size:26px;font-weight:800;color:#fff;'>4</span>"
+                "<span style='font-size:12.5px;color:#c3ccdd;'> comptes · 1 240 000 € agrégés</span></div>",
+                unsafe_allow_html=True,
+            )
+            cc2.button("Gérer les comptes →", key="matreso_gerer",
+                       on_click=go, args=("espace_avenir",), use_container_width=True)
         st.markdown(
             """
             <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:12px;">
@@ -1457,8 +1467,7 @@ def _onglet_ma_treso():
         st.markdown(
             "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
             "padding:16px 18px;margin-top:12px;\">"
-            "<div style='font-size:15px;font-weight:600;color:#fff;'>5 derniers mouvements</div>"
-            "<div style='font-size:12px;color:#8a90a0;margin-bottom:2px;'>Date · libellé · compte associé</div>"
+            "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
             + lignes + "</div>",
             unsafe_allow_html=True,
         )
