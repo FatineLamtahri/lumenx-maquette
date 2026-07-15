@@ -1279,7 +1279,7 @@ def _onglet_ma_treso():
         # Gap auto de Streamlit neutralisé (=0) : l'écart entre les cartes est fixé
         # par le margin-top de CHAQUE carte (voir plus bas), pas ici.
         ".st-key-mt_grid [data-testid='stColumn'] > [data-testid='stVerticalBlock']{gap:0 !important;}"
-        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:20px;height:500px !important;box-sizing:border-box;}"
+        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:0px;height:500px !important;box-sizing:border-box;}"
         ".st-key-mt_hyp > [data-testid='stVerticalBlock']{gap:0.5rem !important;}"
         # bouton Recalculer : discret (translucide, petit), comme 'Gérer les comptes'
         ".st-key-mt_hyp .stButton button{background:rgba(45,107,255,0.12) !important;"
@@ -1372,7 +1372,7 @@ def _onglet_ma_treso():
                        on_click=go, args=("espace_avenir",), use_container_width=True)
         st.markdown(
             """
-            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:20px;height:150px;box-sizing:border-box;">
+            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:0px;height:150px;box-sizing:border-box;">
               <div style="font-size:15px;font-weight:600;color:#fff;">Période d'analyse</div>
               <div style="font-size:12px;color:#8a90a0;margin-bottom:12px;">Points extrêmes de trésorerie, agrégés par compte</div>
               <div style="display:flex;justify-content:space-between;">
@@ -1409,7 +1409,7 @@ def _onglet_ma_treso():
             )
         st.markdown(
             "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-            "padding:16px 18px;margin-top:20px;height:438px;box-sizing:border-box;\">"
+            "padding:16px 18px;margin-top:0px;height:438px;box-sizing:border-box;\">"
             "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
             + lignes + "</div>",
             unsafe_allow_html=True,
