@@ -1482,7 +1482,7 @@ def _onglet_ma_treso():
             for d, lib, cpt, montant, coul in mvts:
                 lignes += (
                     "<div style='display:flex;justify-content:space-between;align-items:flex-start;"
-                    "padding:23px 0;border-top:1px solid #1E2A3D;'>"
+                    "padding:18px 0;border-top:1px solid #1E2A3D;'>"
                     "<div style='display:flex;gap:12px;'>"
                     f"<span style='font-size:11.5px;color:#8a90a0;min-width:38px;'>{d}</span>"
                     f"<div><div style='font-size:13px;color:#c3ccdd;'>{lib}</div>"
@@ -1491,7 +1491,7 @@ def _onglet_ma_treso():
                 )
             st.markdown(
                 "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-                "padding:16px 18px;margin-top:18px;height:456px;box-sizing:border-box;\">"
+                "padding:16px 18px;margin-top:18px;height:405px;box-sizing:border-box;\">"
                 "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
                 + lignes + "</div>",
                 unsafe_allow_html=True,
