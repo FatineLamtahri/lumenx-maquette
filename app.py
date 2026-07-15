@@ -1377,7 +1377,7 @@ def _onglet_ma_treso():
     with col_g:
         st.markdown(
             """
-            <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;height:340px;box-sizing:border-box;">
+            <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;height:300px;box-sizing:border-box;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:16px;font-weight:600;color:#e8ecf4;">Évolution de la trésorerie</span>
                 <span style="font-size:11px;color:#8a90a0;">16/04/2026 → 15/07/2026</span></div>
@@ -1387,7 +1387,7 @@ def _onglet_ma_treso():
               <div style="display:flex;gap:18px;font-size:11px;color:#c3ccdd;margin-top:6px;">
                 <span><span style="color:#2D6BFF;font-weight:700;">━</span> Historique</span>
                 <span><span style="color:#5DCAA5;font-weight:700;">╌╌</span> Projection</span></div>
-              <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:150px;margin-top:8px;">
+              <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:110px;margin-top:8px;">
                 <defs><linearGradient id="gdmt" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2D6BFF" stop-opacity="0.30"/><stop offset="1" stop-color="#2D6BFF" stop-opacity="0"/></linearGradient></defs>
                 <polygon fill="url(#gdmt)" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 240,110 0,110"/>
                 <polyline fill="none" stroke="#2D6BFF" stroke-width="2.5" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50"/>
@@ -1398,7 +1398,7 @@ def _onglet_ma_treso():
             """,
             unsafe_allow_html=True,
         )
-        with st.container(key="mt_hyp", height=360):
+        with st.container(key="mt_hyp"):
             st.markdown(
                 "<style>"
                 "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepUp'],"
@@ -1482,7 +1482,7 @@ def _onglet_ma_treso():
             for d, lib, cpt, montant, coul in mvts:
                 lignes += (
                     "<div style='display:flex;justify-content:space-between;align-items:flex-start;"
-                    "padding:17px 0;border-top:1px solid #1E2A3D;'>"
+                    "padding:23px 0;border-top:1px solid #1E2A3D;'>"
                     "<div style='display:flex;gap:12px;'>"
                     f"<span style='font-size:11.5px;color:#8a90a0;min-width:38px;'>{d}</span>"
                     f"<div><div style='font-size:13px;color:#c3ccdd;'>{lib}</div>"
@@ -1491,7 +1491,7 @@ def _onglet_ma_treso():
                 )
             st.markdown(
                 "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-                "padding:16px 18px;margin-top:18px;height:430px;box-sizing:border-box;\">"
+                "padding:16px 18px;margin-top:18px;height:456px;box-sizing:border-box;\">"
                 "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
                 + lignes + "</div>",
                 unsafe_allow_html=True,
