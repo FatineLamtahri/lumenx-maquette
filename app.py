@@ -1164,13 +1164,12 @@ def _crc_svg(rows, sel):
     )
 
 
-def _crc_detail_html(r, unite):
-    """Panneau de détail du mois sélectionné, en € ou en % du CA."""
+def _crc_detail_html(r):
+    """Panneau de détail du mois sélectionné : montant (€) ET % du CA côte à côte."""
     ca = r["ca"]
-    pct = unite != "€"
 
-    def fmt(v):
-        return (f"{v/ca*100:.1f}".replace(".", ",") + " %") if pct else (str(v) + " k€")
+    def pct(v):
+        return f"{v/ca*100:.1f}".replace(".", ",") + " %"
 
     def ligne(lbl, v, coul, bold=False):
         tc = "#fff" if bold else "#c3ccdd"
@@ -1180,10 +1179,19 @@ def _crc_detail_html(r, unite):
             '<div style="display:flex;align-items:center;padding:7px 0;border-top:1px solid #1E2A3D;">'
             '<span style="width:3px;height:15px;background:' + coul + ';display:inline-block;margin-right:10px;"></span>'
             '<span style="flex:1;color:' + tc + ';font-size:12.5px;font-weight:' + fw + ';">' + lbl + '</span>'
-            '<span style="color:' + vc + ';font-size:12.5px;font-weight:' + fw + ';">' + fmt(v) + '</span></div>'
+            '<span style="width:120px;text-align:right;color:#fff;font-size:12.5px;font-weight:' + fw + ';">' + str(v) + ' k€</span>'
+            '<span style="width:100px;text-align:right;color:' + vc + ';font-size:12.5px;font-weight:' + fw + ';">' + pct(v) + '</span></div>'
         )
+    entete = (
+        '<div style="display:flex;align-items:center;padding:0 0 4px;">'
+        '<span style="width:13px;"></span>'
+        '<span style="flex:1;font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;">POSTE</span>'
+        '<span style="width:120px;text-align:right;font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;">MONTANT</span>'
+        '<span style="width:100px;text-align:right;font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;">% DU CA</span></div>'
+    )
     corps = (
-        ligne("CA récurrent", r["ca_rec"], "#5DCAA5")
+        entete
+        + ligne("CA récurrent", r["ca_rec"], "#5DCAA5")
         + ligne("CA variable / aléatoire", r["ca_var"], "#5DCAA5")
         + ligne("Charges récurrentes", r["ch_rec"], "#E0604A")
         + ligne("Charges variables", r["ch_var"], "#E0604A")
@@ -1192,7 +1200,7 @@ def _crc_detail_html(r, unite):
     )
     return (
         '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:12px;">'
-        '<div style="font-size:14px;font-weight:700;color:#e8ecf4;margin-bottom:4px;">Détail — ' + r["lbl"] + ' 2026</div>'
+        '<div style="font-size:14px;font-weight:700;color:#e8ecf4;margin-bottom:6px;">Détail — ' + r["lbl"] + ' 2026</div>'
         + corps + '</div>'
     )
 
@@ -1214,7 +1222,7 @@ def _crc_kpi_html(rows):
             '<span style="flex:1;text-align:right;color:#fff;font-size:12px;font-weight:700;">' + str(val) + ' k€</span></div>'
         )
     return (
-        '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;">'
+        '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:48px;">'
         '<div style="font-size:15px;font-weight:700;color:#e8ecf4;">Indicateurs clés</div>'
         '<div style="font-size:12px;color:#c3ccdd;margin-top:12px;">Charges fixes cumulées</div>'
         '<div style="font-size:10.5px;color:#5a6478;">base 119 k€/mois · récurrentes + internes + financières</div>'
@@ -1236,16 +1244,12 @@ def _report_flux():
     labels = [r["lbl"] for r in rows]
     col_l, col_r = st.columns([2.3, 1], gap="medium")
     with col_l:
-        sc1, sc2, _sc3 = st.columns([1.3, 1.5, 1.4], vertical_alignment="center")
+        sc1, _sc2 = st.columns([1.5, 3], vertical_alignment="center")
         sel_lbl = sc1.selectbox("Mois analysé", labels, index=5,
                                 key="crc_mois", label_visibility="collapsed")
-        unite = sc2.pills("Unité", ["€", "% du CA"], default="% du CA",
-                          key="crc_unite", label_visibility="collapsed")
-        if not unite:
-            unite = "% du CA"
         sel = labels.index(sel_lbl)
         st.markdown(_crc_svg(rows, sel), unsafe_allow_html=True)
-        st.markdown(_crc_detail_html(rows[sel], unite), unsafe_allow_html=True)
+        st.markdown(_crc_detail_html(rows[sel]), unsafe_allow_html=True)
     with col_r:
         st.markdown(_crc_kpi_html(rows), unsafe_allow_html=True)
 
