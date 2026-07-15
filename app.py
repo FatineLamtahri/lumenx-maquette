@@ -1285,7 +1285,7 @@ def _onglet_ma_treso():
         ".st-key-mt_hyp .stButton button{background:rgba(45,107,255,0.12) !important;"
         "border:1px solid rgba(45,107,255,0.55) !important;color:#5A96FF !important;font-weight:600 !important;"
         "padding:5px 10px !important;font-size:13px !important;}"
-        ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;height:161px !important;box-sizing:border-box;}"
+        ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;height:172px !important;box-sizing:border-box;}"
         ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
         "border:1px solid #2D6BFF !important;color:#5A96FF !important;}"
         "</style>",
@@ -1409,7 +1409,7 @@ def _onglet_ma_treso():
             )
         st.markdown(
             "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-            "padding:16px 18px;margin-top:20px;height:442px;box-sizing:border-box;\">"
+            "padding:16px 18px;margin-top:20px;height:438px;box-sizing:border-box;\">"
             "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
             + lignes + "</div>",
             unsafe_allow_html=True,
