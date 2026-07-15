@@ -1428,7 +1428,7 @@ def ecran_dashboard():
           <div style="display:flex;align-items:flex-end;gap:14px;"><span style="font-family:'Fraunces',serif;font-size:42px;font-weight:700;color:#fff;line-height:1;">Tableau de bord</span>
             <span style="font-size:15px;color:#cdd8f5;background:rgba(45,107,255,.14);border:1px solid #2D6BFF;border-radius:22px;padding:6px 16px;">Profil · {profil}</span></div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:15px;color:#a9c0f0;background:rgba(45,107,255,.10);border-left:3px solid #2D6BFF;padding:10px 14px;border-radius:0 8px 8px 0;">🧪 Données de démonstration · jeu de transactions fictif</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:15px;color:#a9c0f0;background:rgba(45,107,255,.10);border-left:3px solid #2D6BFF;padding:10px 14px;border-radius:0 8px 8px 0;">🧪 Données de démonstration · jeu de transactions fictif · build TEST-A</div>
         """,
         unsafe_allow_html=True,
     )
