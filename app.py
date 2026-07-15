@@ -1362,6 +1362,7 @@ def _onglet_ma_treso():
         ".st-key-mt_grid > [data-testid='stVerticalBlock'] > [data-testid='stHorizontalBlock'] > "
         "[data-testid='stColumn']:last-child > [data-testid='stVerticalBlock']{height:100%;justify-content:space-between;}"
         ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:14px;}"
+        ".st-key-mt_hyp > [data-testid='stVerticalBlock']{gap:0.5rem !important;}"
         ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;}"
         ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
         "border:1px solid #2D6BFF !important;color:#5A96FF !important;}"
@@ -1383,7 +1384,7 @@ def _onglet_ma_treso():
               <div style="display:flex;gap:18px;font-size:11px;color:#c3ccdd;margin-top:6px;">
                 <span><span style="color:#2D6BFF;font-weight:700;">━</span> Historique</span>
                 <span><span style="color:#5DCAA5;font-weight:700;">╌╌</span> Projection</span></div>
-              <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:200px;margin-top:8px;">
+              <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:140px;margin-top:8px;">
                 <defs><linearGradient id="gdmt" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2D6BFF" stop-opacity="0.30"/><stop offset="1" stop-color="#2D6BFF" stop-opacity="0"/></linearGradient></defs>
                 <polygon fill="url(#gdmt)" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 240,110 0,110"/>
                 <polyline fill="none" stroke="#2D6BFF" stroke-width="2.5" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50"/>
