@@ -1357,6 +1357,10 @@ def _onglet_ma_treso():
     # de la carte 'Comptes connectés'.
     st.markdown(
         "<style>"
+        # colonnes principales de MÊME HAUTEUR (scopé au conteneur mt_grid, enfants directs)
+        ".st-key-mt_grid > [data-testid='stVerticalBlock'] > [data-testid='stHorizontalBlock']{align-items:stretch !important;}"
+        ".st-key-mt_grid > [data-testid='stVerticalBlock'] > [data-testid='stHorizontalBlock'] > "
+        "[data-testid='stColumn']:last-child > [data-testid='stVerticalBlock']{height:100%;justify-content:space-between;}"
         ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:14px;}"
         ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;}"
         ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
@@ -1364,7 +1368,8 @@ def _onglet_ma_treso():
         "</style>",
         unsafe_allow_html=True,
     )
-    col_g, col_d = st.columns([1.2, 1], gap="medium")
+    with st.container(key="mt_grid"):
+        col_g, col_d = st.columns([1.2, 1], gap="medium")
     with col_g:
         st.markdown(
             """
