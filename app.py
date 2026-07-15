@@ -1372,7 +1372,7 @@ def _onglet_ma_treso():
                        on_click=go, args=("espace_avenir",), use_container_width=True)
         st.markdown(
             """
-            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:0px;height:150px;box-sizing:border-box;">
+            <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:10px;height:150px;box-sizing:border-box;">
               <div style="font-size:15px;font-weight:600;color:#fff;">Période d'analyse</div>
               <div style="font-size:12px;color:#8a90a0;margin-bottom:12px;">Points extrêmes de trésorerie, agrégés par compte</div>
               <div style="display:flex;justify-content:space-between;">
