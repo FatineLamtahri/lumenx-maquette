@@ -1267,49 +1267,104 @@ def _report_flux():
         st.markdown(_crc_kpi_html(rows, sel), unsafe_allow_html=True)
 
 
-def _ligne_budget(poste, budget, reel, ecart, coul):
-    cell = "padding:14px 10px;border-top:1px solid #20202c;font-size:15px;"
-    return (
-        f"<div style='{cell}color:#fff;'>{poste}</div>"
-        f"<div style='{cell}color:#c2c6d2;text-align:right;'>{budget}</div>"
-        f"<div style='{cell}color:#fff;text-align:right;'>{reel}</div>"
-        f"<div style='{cell}color:{coul};text-align:right;font-weight:700;'>{ecart}</div>"
-    )
+# ---- Charges Tracker (lecture seule) : taxonomie v4 × comportement prévisionnel ----
+# comportement -> (fond pastille, bordure, texte, inclus dans le prévisionnel)
+_CT_COMP = {
+    "Fixe récurrent":            ("rgba(45,107,255,0.16)",  "#2D6BFF", "#9fc0ff", True),
+    "Échéancier légal":          ("rgba(127,119,221,0.16)", "#7F77DD", "#b9b3f0", True),
+    "Variable lié à l'activité": ("rgba(93,202,165,0.16)",  "#5DCAA5", "#8fe0c4", True),
+    "Ponctuel":                  ("rgba(107,118,136,0.16)", "#6b7688", "#aab3c7", False),
+    "Ponctuel imprévisible":     ("rgba(107,118,136,0.16)", "#6b7688", "#aab3c7", False),
+}
+# (Level 1, [(Level 2, comportement, montant 12 mois en k€), ...])
+_CT_DATA = [
+    ("Exploitation", [
+        ("Rémunérations", "Fixe récurrent", 900),
+        ("Charges sociales", "Échéancier légal", 380),
+        ("Achats liés à l'activité", "Variable lié à l'activité", 320),
+        ("Locaux & énergie", "Fixe récurrent", 180),
+        ("Assurances & abonnements", "Fixe récurrent", 96),
+        ("Honoraires", "Fixe récurrent", 60),
+        ("Autres charges externes", "Variable lié à l'activité", 55),
+        ("Déplacements & véhicules", "Ponctuel", 40),
+        ("Avantages sociaux", "Fixe récurrent", 30),
+    ]),
+    ("Impôts & taxes", [
+        ("Impôts & taxes (IS, CFE, CVAE)", "Échéancier légal", 120),
+    ]),
+    ("Financement", [
+        ("Emprunts (échéances)", "Fixe récurrent", 84),
+        ("Résultat financier (agios)", "Variable lié à l'activité", 12),
+    ]),
+    ("Exceptionnel", [
+        ("Charges exceptionnelles", "Ponctuel imprévisible", 25),
+    ]),
+]
 
 
-def _report_budget():
-    """Onglet Budget vs réalisé : comparaison par poste et écarts."""
-    entete = "padding:0 10px 8px;font-size:13px;color:#8a90a0;"
-    lignes = (
-        _ligne_budget("Salaires", "210 000 €", "210 000 €", "0 €", "#8a90a0")
-        + _ligne_budget("Marketing", "60 000 €", "48 000 €", "−12 000 € (−20 %)", "#28c76f")
-        + _ligne_budget("Fournisseurs", "110 000 €", "120 000 €", "+10 000 € (+9 %)", "#ff7a7a")
-        + _ligne_budget("Charges & impôts", "70 000 €", "34 000 €", "−36 000 € (−51 %)", "#28c76f")
-    )
-    st.markdown(
-        f"""
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;">
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Budget (mois)</div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">450 000 €</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Réalisé</div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">412 000 €</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Écart</div>
-            <div style="font-size:25px;font-weight:800;color:#28c76f;margin-top:6px;">−38 000 € <span style="font-size:14px;font-weight:600;">(−8,4 %)</span></div></div>
-        </div>
+def _ct_montant(v):
+    """k€ -> '2,30 M€' si >= 1000, sinon '900 k€'."""
+    return (f"{v/1000:.2f} M€".replace(".", ",")) if v >= 1000 else (f"{v} k€")
 
-        <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;margin-top:12px;">
-          <div style="font-size:16px;font-weight:600;color:#e8ecf4;margin-bottom:10px;">Par poste — budget vs réalisé</div>
-          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1.4fr;">
-            <div style="{entete}">Poste</div><div style="{entete}text-align:right;">Budget</div><div style="{entete}text-align:right;">Réalisé</div><div style="{entete}text-align:right;">Écart</div>
-            {lignes}
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+
+def _ct_tuile(titre, valeur, coul, suffixe=""):
+    suf = ('<span style="font-size:12px;color:#5a6478;margin-left:8px;">' + suffixe + '</span>') if suffixe else ''
+    return ('<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:12px;padding:12px 16px;">'
+            '<div style="font-size:12px;color:#8a90a0;">' + titre + '</div>'
+            '<div style="font-size:22px;font-weight:800;color:' + coul + ';margin-top:4px;">' + valeur + suf + '</div></div>')
+
+
+def _ct_leg(coul, txt):
+    return ('<span style="display:inline-flex;align-items:center;gap:6px;">'
+            '<span style="width:12px;height:12px;border-radius:3px;background:' + coul + ';display:inline-block;"></span>'
+            + txt + '</span>')
+
+
+def _ct_ligne(nom, comp, montant):
+    fond, bord, txt, inclus = _CT_COMP[comp]
+    mcol = "#fff" if inclus else "#c3ccdd"
+    return ('<div style="display:flex;align-items:center;padding:6px 0;">'
+            '<span style="width:280px;flex-shrink:0;">'
+            '<span style="display:inline-block;padding:4px 12px;border-radius:13px;font-size:12.5px;'
+            'background:' + fond + ';border:1px solid ' + bord + ';color:' + txt + ';">' + nom + '</span></span>'
+            '<span style="flex:1;color:#8a90a0;font-size:12px;">' + comp + '</span>'
+            '<span style="color:' + mcol + ';font-size:13px;font-weight:600;">' + _ct_montant(montant) + '</span></div>')
+
+
+def _crc_charges_tracker():
+    """Charges Tracker (lecture seule) : décaissements des 12 derniers mois classés
+    par taxonomie (Level 1 / Level 2). La couleur de la pastille = comportement
+    prévisionnel ; gris = ponctuel, exclu du prévisionnel."""
+    allrows = [r for _, rs in _CT_DATA for r in rs]
+    total = sum(m for _, _, m in allrows)
+    inclus = sum(m for _, c, m in allrows if _CT_COMP[c][3])
+    exclu = total - inclus
+    pct_inclus = round(inclus / total * 100)
+
+    tuiles = ('<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:6px;">'
+              + _ct_tuile("Total charges · 12 mois", _ct_montant(total), "#fff")
+              + _ct_tuile("Inclus dans le prévisionnel", _ct_montant(inclus), "#5DCAA5", f"{pct_inclus} %")
+              + _ct_tuile("Exclu (ponctuel)", _ct_montant(exclu), "#8a93ad")
+              + _ct_tuile("Catégories suivies", str(len(allrows)), "#fff")
+              + '</div>')
+    leg = ('<div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:14px 2px 8px;font-size:11.5px;color:#c3ccdd;">'
+           + _ct_leg("#2D6BFF", "Fixe récurrent") + _ct_leg("#7F77DD", "Échéancier légal")
+           + _ct_leg("#5DCAA5", "Variable lié à l'activité") + _ct_leg("#6b7688", "Ponctuel / imprévisible")
+           + '<span style="color:#5a6478;">bleu · violet · vert → prévisionnel · gris → exclu</span></div>')
+    entete = ('<div style="display:flex;align-items:center;padding:2px 0 6px;font-size:10px;'
+              'letter-spacing:0.5px;color:#5a6478;">'
+              '<span style="width:280px;flex-shrink:0;">POSTE</span>'
+              '<span style="flex:1;">COMPORTEMENT PRÉVISIONNEL</span>'
+              '<span>MONTANT · 12 MOIS</span></div>')
+    corps = ''
+    for l1, rs in _CT_DATA:
+        corps += ('<div style="font-size:12.5px;font-weight:700;letter-spacing:0.5px;color:#e8ecf4;'
+                  'margin:14px 0 4px;border-bottom:1px solid #1E2A3D;padding-bottom:6px;">' + l1.upper() + '</div>')
+        for nom, comp, montant in rs:
+            corps += _ct_ligne(nom, comp, montant)
+    carte = ('<div style="background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px 18px;margin-top:14px;">'
+             + entete + corps + '</div>')
+    st.markdown(tuiles + leg + carte, unsafe_allow_html=True)
 
 
 def _report_placements():
@@ -1674,7 +1729,7 @@ def ecran_dashboard():
             default="Vue d'ensemble", label_visibility="collapsed", key="crc_sub",
         )
         if sub == "Charges Tracker":
-            _report_budget()
+            _crc_charges_tracker()
         elif sub == "Fiscalité Tracker":
             _placeholder_onglet("Fiscalité Tracker",
                                 "Suivi des charges et échéances fiscales (IS, TVA, CFE…). À venir.")
