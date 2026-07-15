@@ -1392,17 +1392,12 @@ def _onglet_ma_treso():
             ("Charges internes récurrentes", 25000, "€", 1000, dt.date(2026, 8, 28), "chg"),
         ]
         for i, (poste, val, unit, pas, d, sens) in enumerate(hyp):
-            if sens == "rev":
-                tag = ("<span style='font-size:10px;color:#5DCAA5;background:rgba(93,202,165,0.14);"
-                       "border:1px solid rgba(93,202,165,0.55);border-radius:10px;padding:1px 8px;"
-                       "margin-right:8px;white-space:nowrap;'>Revenu</span>")
-            else:
-                tag = ("<span style='font-size:10px;color:#E0604A;background:rgba(224,96,74,0.14);"
-                       "border:1px solid rgba(224,96,74,0.55);border-radius:10px;padding:1px 8px;"
-                       "margin-right:8px;white-space:nowrap;'>Charge</span>")
+            barre = "#5DCAA5" if sens == "rev" else "#E0604A"
             cp, cv, cu, cd = st.columns([2.3, 1.4, 0.7, 1.6], vertical_alignment="center")
-            cp.markdown(f"<div style='color:#fff;font-size:13.5px;'>{tag}{poste}</div>",
-                        unsafe_allow_html=True)
+            cp.markdown(
+                f"<div style='color:#fff;font-size:13.5px;border-left:3px solid {barre};"
+                f"padding-left:10px;'>{poste}</div>",
+                unsafe_allow_html=True)
             cv.number_input(poste, value=val, step=pas, key=f"hyp_val_{i}", label_visibility="collapsed")
             cu.markdown(f"<div style='color:#c3ccdd;font-size:13px;'>{unit}</div>", unsafe_allow_html=True)
             cd.date_input(f"{poste} — date", value=d, key=f"hyp_date_{i}",
