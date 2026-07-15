@@ -1378,16 +1378,26 @@ def _onglet_ma_treso():
             unsafe_allow_html=True,
         )
         # (poste, valeur par défaut, unité, pas, date de paiement par défaut)
+        # (poste, valeur, unité, pas, date, sens) — sens: "rev" (revenu) ou "chg" (charge)
         hyp = [
-            ("CA récurrent", 210000, "€", 1000, dt.date(2026, 8, 5)),
-            ("CA ponctuel", 15000, "€", 1000, dt.date(2026, 8, 20)),
-            ("Charges variables", 28, "% du CA", 1, dt.date(2026, 8, 10)),
-            ("Charges externes récurrentes", 90000, "€", 1000, dt.date(2026, 8, 5)),
-            ("Charges internes récurrentes", 25000, "€", 1000, dt.date(2026, 8, 28)),
+            ("CA récurrent", 210000, "€", 1000, dt.date(2026, 8, 5), "rev"),
+            ("CA ponctuel", 15000, "€", 1000, dt.date(2026, 8, 20), "rev"),
+            ("Charges variables", 28, "% du CA", 1, dt.date(2026, 8, 10), "chg"),
+            ("Charges externes récurrentes", 90000, "€", 1000, dt.date(2026, 8, 5), "chg"),
+            ("Charges internes récurrentes", 25000, "€", 1000, dt.date(2026, 8, 28), "chg"),
         ]
-        for i, (poste, val, unit, pas, d) in enumerate(hyp):
-            cp, cv, cu, cd = st.columns([2.1, 1.5, 0.7, 1.7], vertical_alignment="center")
-            cp.markdown(f"<div style='color:#fff;font-size:13.5px;'>🟡 {poste}</div>", unsafe_allow_html=True)
+        for i, (poste, val, unit, pas, d, sens) in enumerate(hyp):
+            if sens == "rev":
+                tag = ("<span style='font-size:10px;color:#5DCAA5;background:rgba(93,202,165,0.14);"
+                       "border:1px solid rgba(93,202,165,0.55);border-radius:10px;padding:1px 8px;"
+                       "margin-right:8px;white-space:nowrap;'>Revenu</span>")
+            else:
+                tag = ("<span style='font-size:10px;color:#E0604A;background:rgba(224,96,74,0.14);"
+                       "border:1px solid rgba(224,96,74,0.55);border-radius:10px;padding:1px 8px;"
+                       "margin-right:8px;white-space:nowrap;'>Charge</span>")
+            cp, cv, cu, cd = st.columns([2.3, 1.4, 0.7, 1.6], vertical_alignment="center")
+            cp.markdown(f"<div style='color:#fff;font-size:13.5px;'>{tag}{poste}</div>",
+                        unsafe_allow_html=True)
             cv.number_input(poste, value=val, step=pas, key=f"hyp_val_{i}", label_visibility="collapsed")
             cu.markdown(f"<div style='color:#c3ccdd;font-size:13px;'>{unit}</div>", unsafe_allow_html=True)
             cd.date_input(f"{poste} — date", value=d, key=f"hyp_date_{i}",
