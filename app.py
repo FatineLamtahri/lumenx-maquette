@@ -1173,7 +1173,7 @@ def _crc_detail_html(r):
 
     def ligne(lbl, v, coul, bold=False):
         tc = "#fff" if bold else "#c3ccdd"
-        vc = "#5DCAA5" if bold else coul
+        vc = "#fff" if bold else coul
         fw = "700" if bold else "400"
         return (
             '<div style="display:flex;align-items:center;padding:7px 0;border-top:1px solid #1E2A3D;">'
@@ -1222,7 +1222,7 @@ def _crc_kpi_html(rows):
             '<span style="flex:1;text-align:right;color:#fff;font-size:12px;font-weight:700;">' + str(val) + ' k€</span></div>'
         )
     return (
-        '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:48px;">'
+        '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:70px;">'
         '<div style="font-size:15px;font-weight:700;color:#e8ecf4;">Indicateurs clés</div>'
         '<div style="font-size:12px;color:#c3ccdd;margin-top:12px;">Charges fixes cumulées</div>'
         '<div style="font-size:10.5px;color:#5a6478;">base 119 k€/mois · récurrentes + internes + financières</div>'
