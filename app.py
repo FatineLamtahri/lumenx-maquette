@@ -1352,6 +1352,18 @@ def _placeholder_onglet(titre, desc=""):
 def _onglet_ma_treso():
     """Onglet 'Ma tréso' : courbe d'évolution, comptes connectés, période d'analyse,
     derniers mouvements (banque + n° de compte), et hypothèses éditables."""
+    # CSS injecté UNE fois, hors des colonnes (sinon il crée un élément fantôme
+    # qui décale l'espacement). Espacement vertical uniforme des cartes + style
+    # de la carte 'Comptes connectés'.
+    st.markdown(
+        "<style>"
+        "[data-testid='stColumn'] [data-testid='stVerticalBlock']{gap:0.85rem !important;}"
+        ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;}"
+        ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
+        "border:1px solid #2D6BFF !important;color:#5A96FF !important;}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
     col_g, col_d = st.columns([1.2, 1], gap="medium")
     with col_g:
         st.markdown(
@@ -1410,13 +1422,6 @@ def _onglet_ma_treso():
         st.button("Recalculer la projection", type="primary", key="matreso_recalc")
 
     with col_d:
-        st.markdown(
-            "<style>.st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;"
-            "border-radius:16px;padding:14px 18px;}"
-            ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
-            "border:1px solid #2D6BFF !important;color:#5A96FF !important;}</style>",
-            unsafe_allow_html=True,
-        )
         with st.container(key="mt_comptes"):
             cc1, cc2 = st.columns([1.5, 1], vertical_alignment="center")
             cc1.markdown(
