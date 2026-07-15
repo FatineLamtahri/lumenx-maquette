@@ -1090,72 +1090,164 @@ def _barre(label, valeur, pct, couleur="#2D6BFF"):
     )
 
 
+# ---- Compte de résultat cash · Vue d'ensemble --------------------------------
+_CRC_CH_FIX = 119  # charges fixes mensuelles (k€) = ext. récurrentes 90 + internes 25 + financières 4
+# (mois, historique, CA récurrent, CA variable/aléatoire, charges aléatoires) en k€
+_CRC_MOIS = [
+    ("Jan", True, 182, 18, 4), ("Fév", True, 190, 20, 6), ("Mar", True, 176, 15, 3),
+    ("Avr", True, 205, 25, 5), ("Mai", True, 198, 22, 4), ("Jun", True, 210, 30, 5),
+    ("Jul", True, 208, 27, 6), ("Aoû", False, 212, 33, 5), ("Sep", False, 214, 36, 5),
+    ("Oct", False, 218, 37, 6), ("Nov", False, 220, 40, 5), ("Déc", False, 226, 44, 6),
+]
+
+
+def _crc_calc(m):
+    """Dérive les agrégats d'un mois (charges variables = 28 % du CA)."""
+    lbl, hist, ca_rec, ca_var, ch_alea = m
+    ca = ca_rec + ca_var
+    ch_var = round(0.28 * ca)
+    dec = _CRC_CH_FIX + ch_var + ch_alea
+    return {"lbl": lbl, "hist": hist, "ca_rec": ca_rec, "ca_var": ca_var, "ca": ca,
+            "ch_rec": _CRC_CH_FIX, "ch_var": ch_var, "ch_alea": ch_alea,
+            "enc": ca, "dec": dec, "net": ca - dec}
+
+
+def _crc_svg(rows, sel):
+    """Bâtonnets encaissements (haut) / décaissements (bas), historique plein,
+    projeté hachuré, mois sélectionné surligné."""
+    axis, x0, step, bw = 175, 44, 58, 22
+    maxv = max(max(r["enc"], r["dec"]) for r in rows)
+    scale = 150.0 / maxv
+    parts = []
+    for i, r in enumerate(rows):
+        x = x0 + i * step
+        eh, dh = r["enc"] * scale, r["dec"] * scale
+        w = 24 if i == sel else bw
+        xo = x - 1 if i == sel else x
+        if i == sel:
+            sg = sr = ' stroke="#fff" stroke-width="1.5"'
+        elif not r["hist"]:
+            sg = ' stroke="#5DCAA5" stroke-dasharray="3 2"'
+            sr = ' stroke="#E0604A" stroke-dasharray="3 2"'
+        else:
+            sg = sr = ""
+        fg = "#5DCAA5" if r["hist"] else "url(#hG)"
+        fr = "#E0604A" if r["hist"] else "url(#hR)"
+        col = "#fff" if i == sel else ("#8a90a0" if r["hist"] else "#5a6478")
+        fw = ' font-weight="700"' if i == sel else ""
+        parts.append(
+            f'<rect x="{xo}" y="{axis-eh:.0f}" width="{w}" height="{eh:.0f}" fill="{fg}"{sg}/>'
+            f'<rect x="{xo}" y="{axis}" width="{w}" height="{dh:.0f}" fill="{fr}"{sr}/>'
+            f'<text x="{x+bw//2}" y="306" text-anchor="middle" font-size="10" fill="{col}"{fw}>{r["lbl"]}</text>'
+        )
+    last_hist = max(i for i, r in enumerate(rows) if r["hist"])
+    dvx = x0 + last_hist * step + bw // 2 + step // 2
+    div = (f'<line x1="{dvx}" y1="20" x2="{dvx}" y2="290" stroke="#5a6478" stroke-dasharray="3 4"/>'
+           f'<text x="{dvx+5}" y="32" font-size="10.5" fill="#8a90a0">aujourd&#39;hui</text>')
+    return (
+        '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;">'
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+        '<div><div style="font-size:15px;font-weight:700;color:#e8ecf4;">Encaissements vs décaissements</div>'
+        '<div style="font-size:11.5px;color:#8a90a0;">Mensuel · historique plein, projeté hachuré</div></div>'
+        '<div style="font-size:11px;color:#c3ccdd;text-align:right;">'
+        '<span style="color:#5DCAA5;">■</span> Encaissements&nbsp;&nbsp;'
+        '<span style="color:#E0604A;">■</span> Décaissements</div></div>'
+        '<svg viewBox="0 0 760 320" style="width:100%;height:auto;margin-top:6px;">'
+        '<defs>'
+        '<pattern id="hG" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
+        '<rect width="6" height="6" fill="#0E1A16"/><line x1="0" y1="0" x2="0" y2="6" stroke="#5DCAA5" stroke-width="2"/></pattern>'
+        '<pattern id="hR" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">'
+        '<rect width="6" height="6" fill="#1A100E"/><line x1="0" y1="0" x2="0" y2="6" stroke="#E0604A" stroke-width="2"/></pattern>'
+        '</defs>'
+        f'<line x1="30" y1="{axis}" x2="740" y2="{axis}" stroke="#2b3a52"/>'
+        + div + "".join(parts) + '</svg></div>'
+    )
+
+
+def _crc_detail_html(r, unite):
+    """Panneau de détail du mois sélectionné, en € ou en % du CA."""
+    ca = r["ca"]
+    pct = unite != "€"
+
+    def fmt(v):
+        return (f"{v/ca*100:.1f}".replace(".", ",") + " %") if pct else (str(v) + " k€")
+
+    def ligne(lbl, v, coul, bold=False):
+        tc = "#fff" if bold else "#c3ccdd"
+        vc = "#5DCAA5" if bold else coul
+        fw = "700" if bold else "400"
+        return (
+            '<div style="display:flex;align-items:center;padding:7px 0;border-top:1px solid #1E2A3D;">'
+            '<span style="width:3px;height:15px;background:' + coul + ';display:inline-block;margin-right:10px;"></span>'
+            '<span style="flex:1;color:' + tc + ';font-size:12.5px;font-weight:' + fw + ';">' + lbl + '</span>'
+            '<span style="color:' + vc + ';font-size:12.5px;font-weight:' + fw + ';">' + fmt(v) + '</span></div>'
+        )
+    corps = (
+        ligne("CA récurrent", r["ca_rec"], "#5DCAA5")
+        + ligne("CA variable / aléatoire", r["ca_var"], "#5DCAA5")
+        + ligne("Charges récurrentes", r["ch_rec"], "#E0604A")
+        + ligne("Charges variables", r["ch_var"], "#E0604A")
+        + ligne("Charges aléatoires", r["ch_alea"], "#E0604A")
+        + ligne("Solde net", r["net"], "#5DCAA5", bold=True)
+    )
+    return (
+        '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:12px;">'
+        '<div style="font-size:14px;font-weight:700;color:#e8ecf4;margin-bottom:4px;">Détail — ' + r["lbl"] + ' 2026</div>'
+        + corps + '</div>'
+    )
+
+
+def _crc_kpi_html(rows):
+    """Panneau KPI : charges fixes cumulées 1/3/6 mois, ratio CA/charges fixes, ARR."""
+    f1 = _CRC_CH_FIX
+    hist = [r for r in rows if r["hist"]]
+    ratio = (sum(r["ca"] for r in hist[-3:]) / 3.0) / _CRC_CH_FIX
+    arr = hist[-1]["ca_rec"] * 12
+    ratio_s = f"{ratio:.1f}".replace(".", ",")
+    arr_s = f"{arr/1000.0:.2f}".replace(".", ",")
+
+    def barre(lbl, val, w):
+        return (
+            '<div style="display:flex;align-items:center;margin-top:9px;">'
+            '<span style="width:52px;color:#8a90a0;font-size:12px;">' + lbl + '</span>'
+            '<span style="height:12px;width:' + str(w) + 'px;background:#E0604A;border-radius:3px;"></span>'
+            '<span style="flex:1;text-align:right;color:#fff;font-size:12px;font-weight:700;">' + str(val) + ' k€</span></div>'
+        )
+    return (
+        '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;">'
+        '<div style="font-size:15px;font-weight:700;color:#e8ecf4;">Indicateurs clés</div>'
+        '<div style="font-size:12px;color:#c3ccdd;margin-top:12px;">Charges fixes cumulées</div>'
+        '<div style="font-size:10.5px;color:#5a6478;">base 119 k€/mois · récurrentes + internes + financières</div>'
+        + barre("1 mois", f1, 25) + barre("3 mois", f1 * 3, 75) + barre("6 mois", f1 * 6, 150)
+        + '<div style="border-top:1px solid #1E2A3D;margin-top:14px;padding-top:12px;font-size:12px;color:#c3ccdd;">CA / charges fixes · moy. 3 mois</div>'
+        + '<div style="font-size:24px;font-weight:800;color:#5DCAA5;margin-top:2px;">' + ratio_s + '×</div>'
+        + '<div style="font-size:11px;color:#8a90a0;">le CA couvre ' + ratio_s + '× les charges fixes</div>'
+        + '<div style="border-top:1px solid #1E2A3D;margin-top:14px;padding-top:12px;font-size:12px;color:#c3ccdd;">ARR — CA récurrent annualisé</div>'
+        + '<div style="font-size:24px;font-weight:800;color:#fff;margin-top:2px;">' + arr_s + ' M€</div>'
+        + '</div>'
+    )
+
+
 def _report_flux():
-    """Onglet Flux & catégories : encaissements/décaissements et répartition."""
-    enc = (
-        _barre("Ventes & abonnements", "430 000 €", 80)
-        + _barre("Subventions", "60 000 €", 20)
-        + _barre("Autres", "50 000 €", 16)
-    )
-    dec = (
-        _barre("Salaires", "210 000 €", 75, "#5A96FF")
-        + _barre("Fournisseurs", "120 000 €", 43, "#5A96FF")
-        + _barre("Charges & impôts", "82 000 €", 29, "#5A96FF")
-    )
-    st.markdown(
-        f"""
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;">
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Encaissements (mois)</div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">540 000 €</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Décaissements (mois)</div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">412 000 €</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Flux net</div>
-            <div style="font-size:25px;font-weight:800;color:#28c76f;margin-top:6px;">+128 000 €</div></div>
-        </div>
-
-        <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;margin-top:12px;">
-          <div style="font-size:16px;font-weight:600;color:#e8ecf4;margin-bottom:6px;">Flux de trésorerie du mois (Sankey)</div>
-          <svg viewBox="0 0 820 300" style="width:100%;height:auto;">
-            <path d="M223,20 C301,20 301,20 380,20 L380,211 C301,211 301,211 223,211 Z" fill="rgba(40,199,111,.28)"/>
-            <path d="M223,211 C301,211 301,211 380,211 L380,238 C301,238 301,238 223,238 Z" fill="rgba(40,199,111,.28)"/>
-            <path d="M223,238 C301,238 301,238 380,238 L380,260 C301,260 301,260 223,260 Z" fill="rgba(40,199,111,.28)"/>
-            <path d="M400,20 C480,20 480,20 560,20 L560,113 C480,113 480,113 400,113 Z" fill="rgba(90,150,255,.28)"/>
-            <path d="M400,113 C480,113 480,113 560,113 L560,167 C480,167 480,167 400,167 Z" fill="rgba(90,150,255,.28)"/>
-            <path d="M400,167 C480,167 480,167 560,167 L560,203 C480,203 480,203 400,203 Z" fill="rgba(90,150,255,.28)"/>
-            <path d="M400,203 C480,203 480,203 560,203 L560,260 C480,260 480,260 400,260 Z" fill="rgba(40,199,111,.28)"/>
-            <rect x="208" y="20" width="15" height="191" rx="2" fill="#28c76f"/>
-            <rect x="208" y="211" width="15" height="27" rx="2" fill="#28c76f"/>
-            <rect x="208" y="238" width="15" height="22" rx="2" fill="#28c76f"/>
-            <rect x="380" y="20" width="20" height="240" rx="2" fill="#2D6BFF"/>
-            <rect x="560" y="20" width="15" height="93" rx="2" fill="#5A96FF"/>
-            <rect x="560" y="113" width="15" height="54" rx="2" fill="#5A96FF"/>
-            <rect x="560" y="167" width="15" height="36" rx="2" fill="#5A96FF"/>
-            <rect x="560" y="203" width="15" height="57" rx="2" fill="#28c76f"/>
-            <g font-family="Inter,sans-serif" font-size="12.5" fill="#e8ecf4">
-              <text x="200" y="119" text-anchor="end">Ventes &amp; abonnements · 430 k€</text>
-              <text x="200" y="228" text-anchor="end">Subventions · 60 k€</text>
-              <text x="200" y="252" text-anchor="end">Autres · 50 k€</text>
-              <text x="390" y="13" text-anchor="middle" fill="#9fc0ff">Trésorerie · 540 k€</text>
-              <text x="583" y="70" text-anchor="start">Salaires · 210 k€</text>
-              <text x="583" y="143" text-anchor="start">Fournisseurs · 120 k€</text>
-              <text x="583" y="188" text-anchor="start">Charges &amp; impôts · 82 k€</text>
-              <text x="583" y="234" text-anchor="start">Épargne / placé · 128 k€</text>
-            </g>
-          </svg>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-          <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;">
-            <div style="font-size:16px;font-weight:600;color:#e8ecf4;margin-bottom:8px;">Encaissements par catégorie</div>{enc}</div>
-          <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;">
-            <div style="font-size:16px;font-weight:600;color:#e8ecf4;margin-bottom:8px;">Décaissements par catégorie</div>{dec}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """Vue d'ensemble du Compte de résultat cash : bâtonnets encaissements/
+    décaissements (historique + projeté), détail du mois au choix (€ ou % du CA)
+    et KPI (charges fixes cumulées, CA/charges fixes, ARR)."""
+    rows = [_crc_calc(m) for m in _CRC_MOIS]
+    labels = [r["lbl"] for r in rows]
+    col_l, col_r = st.columns([2.3, 1], gap="medium")
+    with col_l:
+        sc1, sc2, _sc3 = st.columns([1.3, 1.5, 1.4], vertical_alignment="center")
+        sel_lbl = sc1.selectbox("Mois analysé", labels, index=5,
+                                key="crc_mois", label_visibility="collapsed")
+        unite = sc2.pills("Unité", ["€", "% du CA"], default="% du CA",
+                          key="crc_unite", label_visibility="collapsed")
+        if not unite:
+            unite = "% du CA"
+        sel = labels.index(sel_lbl)
+        st.markdown(_crc_svg(rows, sel), unsafe_allow_html=True)
+        st.markdown(_crc_detail_html(rows[sel], unite), unsafe_allow_html=True)
+    with col_r:
+        st.markdown(_crc_kpi_html(rows), unsafe_allow_html=True)
 
 
 def _ligne_budget(poste, budget, reel, ecart, coul):
