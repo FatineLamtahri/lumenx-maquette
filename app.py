@@ -1364,7 +1364,8 @@ def _crc_charges_tracker():
             corps += _ct_ligne(nom, comp, montant)
     carte = ('<div style="background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px 18px;margin-top:14px;">'
              + entete + corps + '</div>')
-    st.markdown(tuiles + leg + carte, unsafe_allow_html=True)
+    st.markdown(tuiles + leg + carte + '<div style="height:80px;"></div>',
+                unsafe_allow_html=True)
 
 
 def _report_placements():
