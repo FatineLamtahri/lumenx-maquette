@@ -1360,13 +1360,13 @@ def _onglet_ma_treso():
         # écart IDENTIQUE entre toutes les cartes des 2 colonnes (gap fixe)
         # écart Streamlit mis à 0 : c'est nous qui fixons une marge identique (18 px) sur chaque carte
         ".st-key-mt_grid [data-testid='stColumn'] > [data-testid='stVerticalBlock']{gap:0 !important;}"
-        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:18px;height:340px;box-sizing:border-box;}"
+        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:18px;}"
         ".st-key-mt_hyp > [data-testid='stVerticalBlock']{gap:0.5rem !important;}"
         # bouton Recalculer : discret (translucide, petit), comme 'Gérer les comptes'
         ".st-key-mt_hyp .stButton button{background:rgba(45,107,255,0.12) !important;"
         "border:1px solid rgba(45,107,255,0.55) !important;color:#5A96FF !important;font-weight:600 !important;"
         "padding:5px 10px !important;font-size:13px !important;}"
-        ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;height:100px;box-sizing:border-box;}"
+        ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;}"
         ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
         "border:1px solid #2D6BFF !important;color:#5A96FF !important;}"
         "</style>",
@@ -1398,7 +1398,7 @@ def _onglet_ma_treso():
             """,
             unsafe_allow_html=True,
         )
-        with st.container(key="mt_hyp"):
+        with st.container(key="mt_hyp", height=360):
             st.markdown(
                 "<style>"
                 "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepUp'],"
@@ -1442,7 +1442,7 @@ def _onglet_ma_treso():
 
     with col_d:
         with st.container(key="mt_right"):
-            with st.container(key="mt_comptes"):
+            with st.container(key="mt_comptes", height=100):
                 cc1, cc2 = st.columns([1.5, 1], vertical_alignment="center")
                 cc1.markdown(
                     "<div style='font-size:15px;font-weight:600;color:#fff;'>Comptes connectés</div>"
@@ -1491,7 +1491,7 @@ def _onglet_ma_treso():
                 )
             st.markdown(
                 "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-                "padding:16px 18px;margin-top:18px;height:410px;box-sizing:border-box;\">"
+                "padding:16px 18px;margin-top:18px;height:430px;box-sizing:border-box;\">"
                 "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
                 + lignes + "</div>",
                 unsafe_allow_html=True,
