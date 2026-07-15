@@ -1357,14 +1357,7 @@ def _onglet_ma_treso():
     # de la carte 'Comptes connectés'.
     st.markdown(
         "<style>"
-        # colonnes de même hauteur
-        "[data-testid='stHorizontalBlock']{align-items:stretch !important;}"
-        "[data-testid='stColumn'] > [data-testid='stVerticalBlock']{height:100%;}"
-        "[data-testid='stColumn'] > [data-testid='stVerticalBlock'] > "
-        "[data-testid='stElementContainer']:has(.st-key-mt_right){height:100%;}"
-        # la colonne droite occupe toute la hauteur et répartit ses 3 cartes
-        ".st-key-mt_right{height:100%;}"
-        ".st-key-mt_right > [data-testid='stVerticalBlock']{height:100%;justify-content:space-between;}"
+        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:14px;}"
         ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;}"
         ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
         "border:1px solid #2D6BFF !important;color:#5A96FF !important;}"
@@ -1396,37 +1389,42 @@ def _onglet_ma_treso():
             """,
             unsafe_allow_html=True,
         )
-        st.markdown(
-            "<style>"
-            "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepUp'],"
-            "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
-            "[class*='st-key-hyp_val_'] input{text-align:left !important;}"
-            "</style>"
-            "<div style='margin-top:8px;font-size:16px;font-weight:600;color:#e8ecf4;'>Principales hypothèses</div>"
-            "<div style='font-size:12px;color:#8a90a0;margin-bottom:6px;'>Valeurs par défaut — modifiez la valeur et la date de paiement.</div>",
-            unsafe_allow_html=True,
-        )
-        # (poste, valeur par défaut, unité, pas, date de paiement par défaut)
-        # (poste, valeur, unité, pas, date, sens) — sens: "rev" (revenu) ou "chg" (charge)
-        hyp = [
-            ("CA récurrent", 210000, "€", 1000, dt.date(2026, 8, 5), "rev"),
-            ("CA ponctuel", 15000, "€", 1000, dt.date(2026, 8, 20), "rev"),
-            ("Charges variables", 28, "% du CA", 1, dt.date(2026, 8, 10), "chg"),
-            ("Charges externes récurrentes", 90000, "€", 1000, dt.date(2026, 8, 5), "chg"),
-            ("Charges internes récurrentes", 25000, "€", 1000, dt.date(2026, 8, 28), "chg"),
-        ]
-        for i, (poste, val, unit, pas, d, sens) in enumerate(hyp):
-            barre = "#5DCAA5" if sens == "rev" else "#E0604A"
-            cp, cv, cu, cd = st.columns([2.3, 1.4, 0.7, 1.6], vertical_alignment="center")
-            cp.markdown(
-                f"<div style='color:#fff;font-size:13.5px;border-left:3px solid {barre};"
-                f"padding-left:10px;'>{poste}</div>",
-                unsafe_allow_html=True)
-            cv.number_input(poste, value=val, step=pas, key=f"hyp_val_{i}", label_visibility="collapsed")
-            cu.markdown(f"<div style='color:#c3ccdd;font-size:13px;'>{unit}</div>", unsafe_allow_html=True)
-            cd.date_input(f"{poste} — date", value=d, key=f"hyp_date_{i}",
-                          format="DD/MM/YYYY", label_visibility="collapsed")
-        st.button("Recalculer la projection", type="primary", key="matreso_recalc")
+        with st.container(key="mt_hyp"):
+            st.markdown(
+                "<style>"
+                "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepUp'],"
+                "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
+                "[class*='st-key-hyp_val_'] input{text-align:left !important;}"
+                "</style>"
+                "<div style='font-size:16px;font-weight:600;color:#e8ecf4;'>Principales hypothèses</div>"
+                "<div style='font-size:12px;color:#8a90a0;margin-bottom:8px;'>Valeurs par défaut — modifiez la valeur et la date de paiement.</div>",
+                unsafe_allow_html=True,
+            )
+            # En-têtes de colonnes (mêmes ratios que les lignes)
+            he1, he2, _he3, he4 = st.columns([2.3, 1.4, 0.7, 1.6])
+            he1.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>POSTE</div>", unsafe_allow_html=True)
+            he2.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>VALEUR</div>", unsafe_allow_html=True)
+            he4.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>DATE DE PAIEMENT</div>", unsafe_allow_html=True)
+            # (poste, valeur, unité, pas, date, sens) — sens: "rev" (revenu) ou "chg" (charge)
+            hyp = [
+                ("CA récurrent", 210000, "€", 1000, dt.date(2026, 8, 5), "rev"),
+                ("CA ponctuel", 15000, "€", 1000, dt.date(2026, 8, 20), "rev"),
+                ("Charges variables", 28, "% du CA", 1, dt.date(2026, 8, 10), "chg"),
+                ("Charges externes récurrentes", 90000, "€", 1000, dt.date(2026, 8, 5), "chg"),
+                ("Charges internes récurrentes", 25000, "€", 1000, dt.date(2026, 8, 28), "chg"),
+            ]
+            for i, (poste, val, unit, pas, d, sens) in enumerate(hyp):
+                barre = "#5DCAA5" if sens == "rev" else "#E0604A"
+                cp, cv, cu, cd = st.columns([2.3, 1.4, 0.7, 1.6], vertical_alignment="center")
+                cp.markdown(
+                    f"<div style='color:#fff;font-size:13.5px;border-left:3px solid {barre};"
+                    f"padding-left:10px;'>{poste}</div>",
+                    unsafe_allow_html=True)
+                cv.number_input(poste, value=val, step=pas, key=f"hyp_val_{i}", label_visibility="collapsed")
+                cu.markdown(f"<div style='color:#c3ccdd;font-size:13px;'>{unit}</div>", unsafe_allow_html=True)
+                cd.date_input(f"{poste} — date", value=d, key=f"hyp_date_{i}",
+                              format="DD/MM/YYYY", label_visibility="collapsed")
+            st.button("Recalculer la projection", type="primary", key="matreso_recalc")
 
     with col_d:
         with st.container(key="mt_right"):
@@ -1442,7 +1440,7 @@ def _onglet_ma_treso():
                            on_click=go, args=("espace_avenir",), use_container_width=True)
             st.markdown(
                 """
-                <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;">
+                <div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:14px;">
                   <div style="font-size:15px;font-weight:600;color:#fff;">Période d'analyse</div>
                   <div style="font-size:12px;color:#8a90a0;margin-bottom:12px;">Points extrêmes de trésorerie, agrégés par compte</div>
                   <div style="display:flex;justify-content:space-between;">
@@ -1479,7 +1477,7 @@ def _onglet_ma_treso():
                 )
             st.markdown(
                 "<div style=\"background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-                "padding:16px 18px;\">"
+                "padding:16px 18px;margin-top:14px;\">"
                 "<div style='font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;'>5 derniers mouvements</div>"
                 + lignes + "</div>",
                 unsafe_allow_html=True,
