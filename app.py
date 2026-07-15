@@ -1236,7 +1236,7 @@ def _crc_kpi_html(rows, sel):
             '<span style="flex:1;text-align:right;color:#fff;font-size:12px;font-weight:700;">' + str(val) + ' k€</span></div>'
         )
     return (
-        '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:58px;">'
+        '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:62px;">'
         '<div style="font-size:15px;font-weight:700;color:#e8ecf4;">Indicateurs clés</div>'
         '<div style="font-size:12px;color:#c3ccdd;margin-top:12px;">Charges fixes cumulées</div>'
         + barre("1 mois", f1, 25) + barre("3 mois", f1 * 3, 75) + barre("6 mois", f1 * 6, 150)
