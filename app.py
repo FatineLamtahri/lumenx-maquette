@@ -1321,14 +1321,22 @@ def _ct_leg(coul, txt):
 
 
 def _ct_ligne(nom, comp, montant):
+    """Ligne de charge. La pastille a des dimensions FIXES (largeur/hauteur identiques
+    pour toutes les catégories), texte centré, calées sur le libellé le plus long."""
     fond, bord, txt, inclus = _CT_COMP[comp]
     mcol = "#fff" if inclus else "#c3ccdd"
     return ('<div style="display:flex;align-items:center;padding:6px 0;">'
             '<span style="width:280px;flex-shrink:0;">'
-            '<span style="display:inline-block;padding:4px 12px;border-radius:13px;font-size:12.5px;'
+            '<span style="display:inline-block;box-sizing:border-box;width:254px;height:26px;'
+            'line-height:24px;text-align:center;border-radius:13px;'
+            'font-size:12.5px;font-weight:500;'
             'background:' + fond + ';border:1px solid ' + bord + ';color:' + txt + ';">' + nom + '</span></span>'
             '<span style="flex:1;color:#8a90a0;font-size:12px;">' + comp + '</span>'
-            '<span style="color:' + mcol + ';font-size:13px;font-weight:600;">' + _ct_montant(montant) + '</span></div>')
+            '<span style="width:110px;flex-shrink:0;font-size:11.5px;color:'
+            + ("#5DCAA5" if inclus else "#8a93ad") + ';">'
+            + ("inclus" if inclus else "exclu") + '</span>'
+            '<span style="width:110px;flex-shrink:0;text-align:right;color:' + mcol
+            + ';font-size:13px;font-weight:600;">' + _ct_montant(montant) + '</span></div>')
 
 
 def _crc_charges_tracker():
@@ -1350,12 +1358,13 @@ def _crc_charges_tracker():
     leg = ('<div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:14px 2px 8px;font-size:11.5px;color:#c3ccdd;">'
            + _ct_leg("#2D6BFF", "Fixe récurrent") + _ct_leg("#7F77DD", "Échéancier légal")
            + _ct_leg("#5DCAA5", "Variable lié à l'activité") + _ct_leg("#6b7688", "Ponctuel / imprévisible")
-           + '<span style="color:#5a6478;">bleu · violet · vert → prévisionnel · gris → exclu</span></div>')
+           + '</div>')
     entete = ('<div style="display:flex;align-items:center;padding:2px 0 6px;font-size:10px;'
               'letter-spacing:0.5px;color:#5a6478;">'
               '<span style="width:280px;flex-shrink:0;">POSTE</span>'
               '<span style="flex:1;">COMPORTEMENT PRÉVISIONNEL</span>'
-              '<span>MONTANT · 12 MOIS</span></div>')
+              '<span style="width:110px;flex-shrink:0;">PRÉVISIONNEL</span>'
+              '<span style="width:110px;flex-shrink:0;text-align:right;">MONTANT · 12 MOIS</span></div>')
     corps = ''
     for l1, rs in _CT_DATA:
         corps += ('<div style="font-size:12.5px;font-weight:700;letter-spacing:0.5px;color:#e8ecf4;'
@@ -1444,8 +1453,12 @@ def _fisc_reset(rid):
 
 
 def _fisc_pastille(typ):
+    """Pastille de type. Largeur/hauteur FIXES et texte centré : toutes les pastilles
+    ont la même taille quel que soit le mot (TVA, IS, CFE, Autre)."""
     fond, bord, txt = _FISC_TYPES.get(typ, _FISC_TYPES["Autre"])
-    return ("<span style='display:inline-block;padding:3px 10px;border-radius:11px;font-size:11px;"
+    return ("<span style='display:inline-block;box-sizing:border-box;width:62px;height:22px;"
+            "line-height:20px;text-align:center;border-radius:11px;"
+            "font-size:11px;font-weight:500;letter-spacing:0.2px;"
             "background:" + fond + ";border:1px solid " + bord + ";color:" + txt + ";'>" + typ + "</span>")
 
 
