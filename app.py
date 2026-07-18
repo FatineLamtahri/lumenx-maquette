@@ -1428,7 +1428,9 @@ def _crc_charges_tracker():
         "</style>",
         unsafe_allow_html=True,
     )
-    rat = [2.4, 1.2, 0.6, 0.55, 0.55, 0.55, 0.7, 1.1, 0.95, 0.95, 0.95]
+    # Pas de colonne PRÉV. : un poste hors prévisionnel se lit à ses projections à 0,
+    # que le client reste libre de remplir. Mêmes ratios que le Revenu Tracker.
+    rat = [2.4, 1.2, 0.55, 0.55, 0.55, 0.7, 1.1, 0.95, 0.95, 0.95]
     ent = "font-size:9.5px;font-weight:700;letter-spacing:0.5px;color:#5a6478;"
     gris = "color:#c3ccdd;font-size:11.5px;text-align:right;"
 
@@ -1465,15 +1467,15 @@ def _crc_charges_tracker():
 
     with st.container(key="ct_card"):
         h = st.columns(rat)
-        for i, lbl in enumerate(["POSTE", "PROFIL", "PRÉV."]):
+        for i, lbl in enumerate(["POSTE", "PROFIL"]):
             h[i].markdown(f"<div style='{ent}'>{lbl}</div>", unsafe_allow_html=True)
         for i, (_y, _m, nom) in enumerate(_CT_MOIS_REAL):
-            h[3 + i].markdown(f"<div style='{ent}text-align:right;'>{nom.upper()}</div>", unsafe_allow_html=True)
-        h[6].markdown(f"<div style='{ent}text-align:right;'>BASE</div>", unsafe_allow_html=True)
+            h[2 + i].markdown(f"<div style='{ent}text-align:right;'>{nom.upper()}</div>", unsafe_allow_html=True)
+        h[5].markdown(f"<div style='{ent}text-align:right;'>BASE</div>", unsafe_allow_html=True)
         # aligné à gauche comme les pastilles €/% qui se placent en début de colonne
-        h[7].markdown(f"<div style='{ent}'>MODE</div>", unsafe_allow_html=True)
+        h[6].markdown(f"<div style='{ent}'>MODE</div>", unsafe_allow_html=True)
         for i, (_y, _m, nom) in enumerate(_CT_MOIS_PROJ):
-            h[8 + i].markdown(f"<div style='{ent}text-align:center;'>{nom.upper()}</div>", unsafe_allow_html=True)
+            h[7 + i].markdown(f"<div style='{ent}text-align:center;'>{nom.upper()}</div>", unsafe_allow_html=True)
         st.markdown("<div style='border-top:1px solid #1E2A3D;'></div>", unsafe_allow_html=True)
 
         niveau = None
@@ -1493,21 +1495,18 @@ def _crc_charges_tracker():
             c[0].markdown(f"<div style='color:{coul_lib};font-size:12px;'>{lib}</div>", unsafe_allow_html=True)
             c[1].markdown(f"<div style='color:#8a90a0;font-size:10.5px;'>{_CT_PROFILS[profil][0]}</div>",
                           unsafe_allow_html=True)
-            c[2].markdown("<div style='font-size:10.5px;color:"
-                          + ("#5DCAA5;'>inclus" if inclus else "#8a93ad;'>exclu") + "</div>",
-                          unsafe_allow_html=True)
             for k in range(3):
                 txt = "—" if (profil == "échéancier" and reals[k] == 0) else _ct_k(reals[k])
-                c[3 + k].markdown(f"<div style='{gris}'>{txt}</div>", unsafe_allow_html=True)
-            c[6].markdown(f"<div style='color:#fff;font-size:11.5px;text-align:right;font-weight:600;'>"
+                c[2 + k].markdown(f"<div style='{gris}'>{txt}</div>", unsafe_allow_html=True)
+            c[5].markdown(f"<div style='color:#fff;font-size:11.5px;text-align:right;font-weight:600;'>"
                           f"{_ct_k(base)}</div>", unsafe_allow_html=True)
             # Mode de réglage
             if profil == "échéancier":
-                c[7].markdown("<div style='font-size:10px;color:#E0A04A;text-align:center;'>calendrier</div>",
+                c[6].markdown("<div style='font-size:10px;color:#E0A04A;text-align:center;'>calendrier</div>",
                               unsafe_allow_html=True)
                 for k in range(3):
                     coul = "#E0A04A" if projs[k] else "#5a6478"
-                    c[8 + k].markdown(f"<div style='text-align:right;color:{coul};font-size:11.5px;"
+                    c[7 + k].markdown(f"<div style='text-align:right;color:{coul};font-size:11.5px;"
                                       f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
                 continue
             # Chaque champ garde une CLÉ UNIQUE (sinon Streamlit calcule un identifiant
@@ -1515,7 +1514,7 @@ def _crc_charges_tracker():
             # La clé ne sert qu'à identifier : la vérité est dans le stockage, qui
             # réalimente la clé quand Streamlit l'a détruite au changement d'onglet.
             s = _ct_store()[cid]
-            with c[7]:
+            with c[6]:
                 mk = f"w_ct_mode_{cid}"
                 if mk not in st.session_state:
                     st.session_state[mk] = s["mode"]
@@ -1532,13 +1531,13 @@ def _crc_charges_tracker():
                                              label_visibility="collapsed")
             for k in range(3):
                 if s["mode"] == "%":
-                    c[8 + k].markdown(f"<div style='text-align:right;color:#9fc0ff;font-size:11.5px;"
+                    c[7 + k].markdown(f"<div style='text-align:right;color:#9fc0ff;font-size:11.5px;"
                                       f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
                 else:
                     pk = f"w_ct_p{k}_{cid}"
                     if pk not in st.session_state:
                         st.session_state[pk] = float(s["p"][k])
-                    s["p"][k] = c[8 + k].number_input("p", step=0.5, key=pk,
+                    s["p"][k] = c[7 + k].number_input("p", step=0.5, key=pk,
                                                       label_visibility="collapsed")
 
         # Totaux
@@ -1548,20 +1547,20 @@ def _crc_charges_tracker():
         t[0].markdown("<div style='font-size:11.5px;font-weight:700;color:#c3ccdd;'>Charges fixes du mois</div>",
                       unsafe_allow_html=True)
         for k in range(3):
-            t[3 + k].markdown(f"<div style='{gris}font-weight:700;'>{_ct_k(fix_r[k])}</div>",
+            t[2 + k].markdown(f"<div style='{gris}font-weight:700;'>{_ct_k(fix_r[k])}</div>",
                               unsafe_allow_html=True)
         for k in range(3):
             coul = "#E0A04A" if fix_p[k] > fix_p[(k + 1) % 3] or fix_p[k] > 150 else "#c3ccdd"
-            t[8 + k].markdown(f"<div style='text-align:right;color:{coul};font-size:11.5px;"
+            t[7 + k].markdown(f"<div style='text-align:right;color:{coul};font-size:11.5px;"
                               f"font-weight:700;'>{_ct_k(fix_p[k])}</div>", unsafe_allow_html=True)
         g = st.columns(rat, vertical_alignment="center")
         g[0].markdown("<div style='font-size:13px;font-weight:700;color:#fff;'>Total des charges</div>",
                       unsafe_allow_html=True)
         for k in range(3):
-            g[3 + k].markdown(f"<div style='{gris}font-weight:700;'>{_ct_k(tot_r[k])}</div>",
+            g[2 + k].markdown(f"<div style='{gris}font-weight:700;'>{_ct_k(tot_r[k])}</div>",
                               unsafe_allow_html=True)
         for k in range(3):
-            g[8 + k].markdown(f"<div style='text-align:right;color:#E0604A;font-size:12.5px;"
+            g[7 + k].markdown(f"<div style='text-align:right;color:#E0604A;font-size:12.5px;"
                               f"font-weight:800;'>{_ct_k(tot_p[k])}</div>", unsafe_allow_html=True)
 
     st.markdown(
