@@ -296,7 +296,7 @@ def ecran_demo_profil():
     gauche, centre, droite = st.columns([1, 2, 1])
     with centre:
         st.title("Tester la démo")
-        st.caption("Choisissez un profil — il charge des données de trésorerie fictives.")
+        st.caption("Choisissez un profil.")
         st.write("")
         # Chaque bouton mémorise le profil puis va au tableau de bord.
         for p in ["PME", "Free-Lance", "SaaS", "Libéral"]:
@@ -1535,6 +1535,191 @@ def _ct_tuile(titre, valeur, coul, suffixe=""):
             '<div style="font-size:22px;font-weight:800;color:' + coul + ';margin-top:4px;">' + valeur + suf + '</div></div>')
 
 
+def _charges_fixes_par_mois():
+    """Charges fixes projetées sur M+1..M+3, DÉRIVÉES du Charges Tracker.
+    C'est le dénominateur de la couverture affichée dans le Revenu Tracker : si une
+    charge bouge là-bas, la couverture bouge ici."""
+    fix = [0.0, 0.0, 0.0]
+    for cat in _CT_CATS:
+        if not _CT_PROFILS[cat[3]][1]:
+            continue
+        base = round(sum(_ct_reals(cat)) / 3.0, 1)
+        projs = _ct_projections(cat, base)
+        for k in range(3):
+            fix[k] += projs[k]
+    return fix
+
+
+# ---- Revenu Tracker : vue mensuelle, symétrique du Charges Tracker ---------------
+# profil -> (libellé affiché, compte dans le CA RÉCURRENT)
+_RT_PROFILS = {
+    "stable":   ("récurrent · stable", True),
+    "variable": ("récurrent · variable", True),
+    "ponctuel": ("ponctuel", False),
+}
+# (id, section, libellé, profil, réalisés k€)
+_RT_CATS = [
+    ("gc",   "B2B — contrats", "Grands comptes", "stable", (84.0, 84.0, 84.0)),
+    ("b2b",  "B2B — contrats", "Autres comptes B2B", "stable", (31.2, 32.0, 31.5)),
+    ("abo",  "Abonnements", "Abonnements", "variable", (20.8, 21.1, 21.4)),
+    ("soc",  "Retail & vente directe", "Socle d'activité", "stable", (42.0, 43.5, 42.8)),
+    ("pva",  "Retail & vente directe", "Part variable d'activité", "variable", (18.0, 26.5, 21.2)),
+    ("pla",  "Vente en ligne & plateformes", "Reversements plateformes", "variable", (11.2, 12.4, 12.4)),
+    ("vpo",  "Ponctuel & projets", "Ventes ponctuelles", "ponctuel", (15.0, 42.0, 27.0)),
+    ("sub",  "Autres revenus", "Subventions & aides", "ponctuel", (0.0, 0.0, 0.0)),
+    ("rfi",  "Autres revenus", "Revenus financiers", "stable", (1.1, 1.2, 1.3)),
+    ("ref",  "Autres revenus", "Refacturations & remboursements", "ponctuel", (1.9, 4.2, 2.3)),
+]
+
+
+def _rt_init():
+    """Sème les projections. Comme pour les charges, un poste ponctuel démarre à 0
+    mais reste modifiable : on ne projette pas un encaissement sans périodicité."""
+    if st.session_state.get("rt_seed"):
+        return
+    for cid, _sec, _lib, profil, reals in _RT_CATS:
+        defaut = round(sum(reals) / 3.0, 1) if profil != "ponctuel" else 0.0
+        st.session_state.setdefault(f"rt_mode_{cid}", "€")
+        st.session_state.setdefault(f"rt_g_{cid}", 0.0)
+        for k in range(3):
+            st.session_state.setdefault(f"rt_p{k}_{cid}", defaut)
+    st.session_state.rt_seed = True
+
+
+def _rt_projections(cid, profil, base):
+    """Projections M+1..M+3. En mode %, le taux de croissance s'applique au mois
+    précédent de proche en proche."""
+    defaut = base if profil != "ponctuel" else 0.0
+    if st.session_state.get(f"rt_mode_{cid}", "€") == "%":
+        g = st.session_state.get(f"rt_g_{cid}", 0.0) / 100.0
+        vals, v = [], defaut
+        for _ in range(3):
+            v = v * (1.0 + g)
+            vals.append(round(v, 1))
+        return vals
+    return [round(st.session_state.get(f"rt_p{k}_{cid}", defaut), 1) for k in range(3)]
+
+
+def _crc_revenu_tracker():
+    """Revenu Tracker : 3 mois réalisés + 3 mois projetés, par nature de rentrée.
+    La couverture des charges fixes est calculée mois par mois, jamais en moyenne."""
+    _rt_init()
+    _ct_init()  # nécessaire : la couverture dépend des projections de charges
+    st.markdown(
+        "<style>"
+        ".st-key-rt_card{background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;margin-top:12px;}"
+        "[class*='st-key-rt_p'] button[data-testid='stNumberInputStepUp'],"
+        "[class*='st-key-rt_p'] button[data-testid='stNumberInputStepDown'],"
+        "[class*='st-key-rt_g_'] button[data-testid='stNumberInputStepUp'],"
+        "[class*='st-key-rt_g_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
+        "[class*='st-key-rt_p'] input,[class*='st-key-rt_g_'] input{text-align:right !important;font-size:12px !important;}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
+    rat = [2.6, 1.4, 0.55, 0.55, 0.55, 0.7, 1.1, 0.95, 0.95, 0.95]
+    ent = "font-size:9.5px;font-weight:700;letter-spacing:0.5px;color:#5a6478;"
+    gris = "color:#c3ccdd;font-size:11.5px;text-align:right;"
+
+    rec_r, rec_p = [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]
+    tot_r, tot_p = [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]
+    for cid, _sec, _lib, profil, reals in _RT_CATS:
+        base = round(sum(reals) / 3.0, 1)
+        projs = _rt_projections(cid, profil, base)
+        for k in range(3):
+            tot_r[k] += reals[k]
+            tot_p[k] += projs[k]
+            if _RT_PROFILS[profil][1]:
+                rec_r[k] += reals[k]
+                rec_p[k] += projs[k]
+    fixes = _charges_fixes_par_mois()
+    couv = [(rec_p[k] / fixes[k] * 100.0) if fixes[k] else 0.0 for k in range(3)]
+
+    st.markdown(
+        '<div style="background:rgba(45,107,255,0.08);border-radius:8px;padding:9px 14px;'
+        'font-size:12px;color:#9fc0ff;">M0 = juillet 2026, dernier mois clôturé · réalisés M-2 à M0, '
+        'projetés M+1 à M+3 · montants en k€ · le % est un taux de <b>croissance</b> appliqué au mois précédent</div>'
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px;">'
+        + _ct_tuile("CA récurrent · M+1", _ct_k(rec_p[0]) + " k€", "#5DCAA5")
+        + _ct_tuile("Ponctuel observé · moy. réalisée",
+                    _ct_k(sum(sum(c[4]) / 3.0 for c in _RT_CATS if c[3] == "ponctuel")) + " k€", "#8a93ad")
+        + _ct_tuile("Total projeté · M+1", _ct_k(tot_p[0]) + " k€", "#fff")
+        + _ct_tuile("Couverture charges fixes · M+1", f"{couv[0]:.0f} %".replace(".", ","),
+                    "#5DCAA5" if couv[0] >= 100 else "#E0604A")
+        + '</div>', unsafe_allow_html=True)
+
+    with st.container(key="rt_card"):
+        h = st.columns(rat)
+        h[0].markdown(f"<div style='{ent}'>POSTE</div>", unsafe_allow_html=True)
+        h[1].markdown(f"<div style='{ent}'>PROFIL</div>", unsafe_allow_html=True)
+        for i, (_y, _m, nom) in enumerate(_CT_MOIS_REAL):
+            h[2 + i].markdown(f"<div style='{ent}text-align:right;'>{nom.upper()}</div>", unsafe_allow_html=True)
+        h[5].markdown(f"<div style='{ent}text-align:right;'>BASE</div>", unsafe_allow_html=True)
+        h[6].markdown(f"<div style='{ent}'>MODE</div>", unsafe_allow_html=True)
+        for i, (_y, _m, nom) in enumerate(_CT_MOIS_PROJ):
+            h[7 + i].markdown(f"<div style='{ent}text-align:center;'>{nom.upper()}</div>", unsafe_allow_html=True)
+        st.markdown("<div style='border-top:1px solid #1E2A3D;'></div>", unsafe_allow_html=True)
+
+        section = None
+        for cid, sec, lib, profil, reals in _RT_CATS:
+            if sec != section:
+                section = sec
+                st.markdown("<div style='font-size:11.5px;font-weight:700;letter-spacing:0.5px;"
+                            "color:#c3ccdd;margin:10px 0 2px;'>" + sec.upper() + "</div>",
+                            unsafe_allow_html=True)
+            base = round(sum(reals) / 3.0, 1)
+            projs = _rt_projections(cid, profil, base)
+            c = st.columns(rat, vertical_alignment="center")
+            c[0].markdown(f"<div style='color:#fff;font-size:12px;'>{lib}</div>", unsafe_allow_html=True)
+            c[1].markdown(f"<div style='color:#8a90a0;font-size:10.5px;'>{_RT_PROFILS[profil][0]}</div>",
+                          unsafe_allow_html=True)
+            for k in range(3):
+                c[2 + k].markdown(f"<div style='{gris}'>{_ct_k(reals[k])}</div>", unsafe_allow_html=True)
+            c[5].markdown(f"<div style='color:#fff;font-size:11.5px;text-align:right;font-weight:600;'>"
+                          f"{_ct_k(base)}</div>", unsafe_allow_html=True)
+            with c[6]:
+                mode = st.pills("mode", ["€", "%"], key=f"rt_mode_{cid}", label_visibility="collapsed")
+                if not mode:
+                    mode = st.session_state.get(f"rt_mode_{cid}", "€") or "€"
+                if mode == "%":
+                    st.number_input("taux", step=0.5, key=f"rt_g_{cid}", label_visibility="collapsed")
+            for k in range(3):
+                if st.session_state.get(f"rt_mode_{cid}", "€") == "%":
+                    c[7 + k].markdown(f"<div style='text-align:right;color:#9fc0ff;font-size:11.5px;"
+                                      f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
+                else:
+                    c[7 + k].number_input("p", step=0.5, key=f"rt_p{k}_{cid}",
+                                          label_visibility="collapsed")
+
+        st.markdown("<div style='border-top:1px solid #1E2A3D;margin-top:6px;'></div>",
+                    unsafe_allow_html=True)
+        for titre, vr, vp, coul in (("CA récurrent", rec_r, rec_p, "#5DCAA5"),
+                                    ("Total des revenus", tot_r, tot_p, "#fff")):
+            t = st.columns(rat, vertical_alignment="center")
+            t[0].markdown(f"<div style='font-size:12px;font-weight:700;color:{coul};'>{titre}</div>",
+                          unsafe_allow_html=True)
+            for k in range(3):
+                t[2 + k].markdown(f"<div style='{gris}font-weight:700;'>{_ct_k(vr[k])}</div>",
+                                  unsafe_allow_html=True)
+            for k in range(3):
+                t[7 + k].markdown(f"<div style='text-align:right;color:{coul};font-size:11.5px;"
+                                  f"font-weight:700;'>{_ct_k(vp[k])}</div>", unsafe_allow_html=True)
+        # Couverture calculée mois par mois : une moyenne masquerait les creux
+        cv = st.columns(rat, vertical_alignment="center")
+        cv[0].markdown("<div style='font-size:12px;font-weight:700;color:#c3ccdd;'>"
+                       "Couverture des charges fixes</div>", unsafe_allow_html=True)
+        for k in range(3):
+            coul = "#5DCAA5" if couv[k] >= 130 else ("#E0A04A" if couv[k] >= 100 else "#E0604A")
+            cv[7 + k].markdown(f"<div style='text-align:right;color:{coul};font-size:11.5px;"
+                               f"font-weight:700;'>{couv[k]:.0f} %</div>", unsafe_allow_html=True)
+
+    st.markdown(
+        "<div style='background:rgba(93,202,165,0.06);border-radius:8px;padding:10px 14px;"
+        "margin-top:12px;font-size:11px;color:#8fe0c4;'>La couverture divise le CA récurrent projeté "
+        "par les charges fixes du même mois, issues du Charges Tracker. Elle est calculée mois par mois : "
+        "une moyenne masquerait les mois portant un acompte d'impôt.</div>"
+        "<div style='height:80px;'></div>", unsafe_allow_html=True)
+
+
 # ---- Fiscalité Tracker : paramètres + calendrier des échéances --------------------
 # type d'échéance -> (fond pastille, bordure, texte)
 _FISC_TYPES = {
@@ -2135,7 +2320,6 @@ def ecran_dashboard():
           <div style="display:flex;align-items:flex-end;gap:14px;"><span style="font-family:'Fraunces',serif;font-size:42px;font-weight:700;color:#fff;line-height:1;">Tableau de bord</span>
             <span style="font-size:15px;color:#cdd8f5;background:rgba(45,107,255,.14);border:1px solid #2D6BFF;border-radius:22px;padding:6px 16px;">Profil · {profil}</span></div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:15px;color:#a9c0f0;background:rgba(45,107,255,.10);border-left:3px solid #2D6BFF;padding:10px 14px;border-radius:0 8px 8px 0;">🧪 Données de démonstration · jeu de transactions fictif</div>
         """,
         unsafe_allow_html=True,
     )
@@ -2172,8 +2356,7 @@ def ecran_dashboard():
         elif sub == "Fiscalité Tracker":
             _crc_fiscalite_tracker()
         elif sub == "Revenu Tracker":
-            _placeholder_onglet("Revenu Tracker",
-                                "Suivi du chiffre d'affaires récurrent vs variable / aléatoire. À venir.")
+            _crc_revenu_tracker()
         else:  # Vue d'ensemble
             _report_flux()
     with top[3]:
@@ -2217,7 +2400,6 @@ def espace_profil():
         ]),
         titre="👤 Représentant légal",
     )
-    st.caption("Lecture seule dans le MVP — la modification arrivera plus tard.")
 
 
 def espace_documents():
@@ -2245,7 +2427,6 @@ def espace_documents():
             "<span style='color:#2D6BFF;font-size:12.5px;'>⬇ Télécharger</span></div></div>"
         )
     _carte(lignes)
-    st.caption("Documents de démonstration — téléchargement désactivé dans la maquette.")
 
 
 def espace_avenir():
