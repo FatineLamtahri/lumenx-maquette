@@ -1261,6 +1261,13 @@ def _report_flux():
     décaissements (historique + projeté), détail du mois au choix (€ ou % du CA)
     et KPI (charges fixes cumulées, CA/charges fixes, ARR)."""
     rows = [_crc_calc(m) for m in _CRC_MOIS]
+    # Les mois projetés sont écrasés par les valeurs des trackers : une seule vérité.
+    proj = _flux_projetes()
+    i = 0
+    for r in rows:
+        if not r["hist"]:
+            r.update(proj[i])
+            i += 1
     labels = [r["lbl"] for r in rows]
     col_l, col_r = st.columns([2.3, 1], gap="medium")
     with col_l:
@@ -1348,9 +1355,11 @@ def _ct_reals(cat):
 def _ct_init():
     """Sème l'état des projections : mode de réglage et valeurs par défaut.
     Les postes exclus du prévisionnel démarrent à 0 mais restent modifiables :
-    si le client saisit un montant, c'est le sien qui prime."""
-    if st.session_state.get("ct_seed"):
-        return
+    si le client saisit un montant, c'est le sien qui prime.
+
+    Appelé à CHAQUE rendu, sans drapeau : Streamlit détruit l'état des champs qui ne
+    sont pas affichés, et les trackers vivent dans des sous-onglets exclusifs. Un
+    semis unique laisserait donc les champs retomber à 0 au changement de pilule."""
     for cat in _CT_CATS:
         cid, profil, inclus = cat[0], cat[3], cat[4]
         if profil == "échéancier":
@@ -1360,7 +1369,6 @@ def _ct_init():
         st.session_state.setdefault(f"ct_g_{cid}", 0.0)
         for k in range(3):
             st.session_state.setdefault(f"ct_p{k}_{cid}", defaut)
-    st.session_state.ct_seed = True
 
 
 def _ct_projections(cat, base):
@@ -1535,6 +1543,37 @@ def _ct_tuile(titre, valeur, coul, suffixe=""):
             '<div style="font-size:22px;font-weight:800;color:' + coul + ';margin-top:4px;">' + valeur + suf + '</div></div>')
 
 
+def _flux_projetes():
+    """Encaissements et décaissements projetés (M+1..M+3), DÉRIVÉS des trackers.
+    La Vue d'ensemble ne doit pas raconter autre chose que le Revenu Tracker et le
+    Charges Tracker : ses bâtonnets projetés viennent d'ici, pas d'un jeu figé."""
+    _rt_init()
+    _ct_init()
+    ca_rec, ca_pon = [0.0] * 3, [0.0] * 3
+    for cid, _s, _l, profil, reals in _RT_CATS:
+        base = round(sum(reals) / 3.0, 1)
+        pr = _rt_projections(cid, profil, base)
+        cible = ca_rec if _RT_PROFILS[profil][1] else ca_pon
+        for k in range(3):
+            cible[k] += pr[k]
+    ch_fix, ch_var, ch_pon = [0.0] * 3, [0.0] * 3, [0.0] * 3
+    for cat in _CT_CATS:
+        base = round(sum(_ct_reals(cat)) / 3.0, 1)
+        pr = _ct_projections(cat, base)
+        cible = (ch_fix if _CT_PROFILS[cat[3]][1]
+                 else (ch_var if cat[3] == "variable" else ch_pon))
+        for k in range(3):
+            cible[k] += pr[k]
+    return [{"ca_rec": round(ca_rec[k]), "ca_var": round(ca_pon[k]),
+             "ca": round(ca_rec[k] + ca_pon[k]),
+             "ch_rec": round(ch_fix[k]), "ch_var": round(ch_var[k]),
+             "ch_alea": round(ch_pon[k]),
+             "enc": round(ca_rec[k] + ca_pon[k]),
+             "dec": round(ch_fix[k] + ch_var[k] + ch_pon[k]),
+             "net": round(ca_rec[k] + ca_pon[k] - ch_fix[k] - ch_var[k] - ch_pon[k])}
+            for k in range(3)]
+
+
 def _charges_fixes_par_mois():
     """Charges fixes projetées sur M+1..M+3, DÉRIVÉES du Charges Tracker.
     C'est le dénominateur de la couverture affichée dans le Revenu Tracker : si une
@@ -1574,16 +1613,15 @@ _RT_CATS = [
 
 def _rt_init():
     """Sème les projections. Comme pour les charges, un poste ponctuel démarre à 0
-    mais reste modifiable : on ne projette pas un encaissement sans périodicité."""
-    if st.session_state.get("rt_seed"):
-        return
+    mais reste modifiable : on ne projette pas un encaissement sans périodicité.
+    Appelé à chaque rendu (cf. _ct_init) : sans cela les champs retombent à 0 quand
+    on quitte le sous-onglet."""
     for cid, _sec, _lib, profil, reals in _RT_CATS:
         defaut = round(sum(reals) / 3.0, 1) if profil != "ponctuel" else 0.0
         st.session_state.setdefault(f"rt_mode_{cid}", "€")
         st.session_state.setdefault(f"rt_g_{cid}", 0.0)
         for k in range(3):
             st.session_state.setdefault(f"rt_p{k}_{cid}", defaut)
-    st.session_state.rt_seed = True
 
 
 def _rt_projections(cid, profil, base):
