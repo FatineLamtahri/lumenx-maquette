@@ -1213,13 +1213,27 @@ def _crc_detail_html(r):
         '<span style="width:120px;text-align:right;font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;">MONTANT</span>'
         '<span style="width:100px;text-align:right;font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;">% DU CA</span></div>'
     )
+    def stotal(lbl, v, coul):
+        """Sous-total d'un bloc : même gabarit de colonnes, pas de barre de couleur."""
+        return (
+            '<div style="display:flex;align-items:center;padding:6px 0;'
+            'border-top:1px solid #1E2A3D;">'
+            '<span style="width:3px;height:15px;display:inline-block;margin-right:10px;"></span>'
+            '<span style="flex:1;color:' + coul + ';font-size:12.5px;font-weight:600;">' + lbl + '</span>'
+            '<span style="width:120px;text-align:right;color:' + coul
+            + ';font-size:12.5px;font-weight:600;">' + mont(v) + '</span>'
+            '<span style="width:100px;text-align:right;color:' + coul
+            + ';font-size:12.5px;font-weight:600;">' + pct(v) + '</span></div>'
+        )
     corps = (
         entete
         + ligne("CA récurrent", r["ca_rec"], "#5DCAA5")
         + ligne("CA variable / aléatoire", r["ca_var"], "#5DCAA5")
+        + stotal("Total encaissements", r["ca"], "#5DCAA5")
         + ligne("Charges récurrentes", r["ch_rec"], "#E0604A")
         + ligne("Charges variables", r["ch_var"], "#E0604A")
         + ligne("Charges aléatoires", r["ch_alea"], "#E0604A")
+        + stotal("Total décaissements", r["dec"], "#E0604A")
         + ligne("Solde net", r["net"], "#5DCAA5", bold=True)
     )
     return (
