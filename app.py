@@ -1587,19 +1587,23 @@ def _crc_fiscalite_tracker():
                               use_container_width=True)
             total += st.session_state.get(f"fisc_mnt_{rid}", 0)
 
-        note = ""
+        # Le total est rendu dans la MÊME grille que les lignes, sinon il se colle au
+        # bord droit de la carte au lieu de tomber sous la colonne MONTANT.
+        st.markdown("<div style='border-top:1px solid #1E2A3D;margin-top:8px;'></div>",
+                    unsafe_allow_html=True)
+        _t1, _t2, t3, t4, _t5, _t6 = st.columns([1.5, 0.8, 3, 1.4, 1.6, 1.1],
+                                                vertical_alignment="center")
+        t3.markdown("<div style='font-size:13.5px;font-weight:700;color:#fff;'>Total des montants</div>",
+                    unsafe_allow_html=True)
+        # padding-right : aligne le total sur les chiffres saisis dans les champs montant.
+        t4.markdown("<div style='font-size:14px;font-weight:800;color:#E0604A;"
+                    "text-align:right;padding-right:12px;'>"
+                    + f"{total:,.0f}".replace(",", " ") + " €</div>", unsafe_allow_html=True)
         if nb_exclu:
-            note = ("<div style='font-size:11px;color:#E0A04A;margin-top:2px;'>"
-                    + str(nb_exclu) + " échéance(s) exclue(s) de la projection : "
-                    + f"{total_exclu:,.0f}".replace(",", " ") + " €</div>")
-        st.markdown(
-            "<div style='border-top:1px solid #1E2A3D;margin-top:10px;padding-top:10px;"
-            "display:flex;align-items:center;'>"
-            "<span style='flex:1;font-size:13.5px;font-weight:700;color:#fff;'>Total des montants</span>"
-            "<span style='font-size:14px;font-weight:800;color:#E0604A;'>"
-            + f"{total:,.0f}".replace(",", " ") + " €</span></div>" + note,
-            unsafe_allow_html=True,
-        )
+            t3.markdown("<div style='font-size:11px;color:#E0A04A;'>"
+                        + str(nb_exclu) + " échéance(s) exclue(s) de la projection : "
+                        + f"{total_exclu:,.0f}".replace(",", " ") + " €</div>",
+                        unsafe_allow_html=True)
     # Marge basse : évite que le total soit masqué par le bouton flottant de Streamlit.
     st.markdown("<div style='height:80px;'></div>", unsafe_allow_html=True)
 
