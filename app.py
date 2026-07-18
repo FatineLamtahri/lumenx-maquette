@@ -1368,6 +1368,233 @@ def _crc_charges_tracker():
                 unsafe_allow_html=True)
 
 
+# ---- Fiscalité Tracker : paramètres + calendrier des échéances --------------------
+# type d'échéance -> (fond pastille, bordure, texte)
+_FISC_TYPES = {
+    "TVA":   ("rgba(45,107,255,0.18)",  "#2D6BFF", "#9fc0ff"),
+    "IS":    ("rgba(127,119,221,0.18)", "#7F77DD", "#b9b3f0"),
+    "CFE":   ("rgba(224,160,74,0.18)",  "#E0A04A", "#f0c489"),
+    "Autre": ("rgba(107,118,136,0.18)", "#6b7688", "#aab3c7"),
+}
+# Calendrier calculé depuis le régime (réel normal mensuel, clôture 31/12).
+# (id, date, type, libellé, montant €)
+_FISC_SEED = [
+    ("f1", dt.date(2026, 8, 19),  "TVA", "Déclaration TVA — juillet",    23000),
+    ("f2", dt.date(2026, 9, 15),  "IS",  "Acompte IS n°3",               22000),
+    ("f3", dt.date(2026, 9, 21),  "TVA", "Déclaration TVA — août",       24000),
+    ("f4", dt.date(2026, 10, 19), "TVA", "Déclaration TVA — septembre",  25000),
+    ("f5", dt.date(2026, 11, 20), "TVA", "Déclaration TVA — octobre",    25000),
+    ("f6", dt.date(2026, 12, 15), "IS",  "Acompte IS n°4",               24000),
+    ("f7", dt.date(2026, 12, 15), "CFE", "Solde CFE",                     8000),
+    ("f8", dt.date(2026, 12, 21), "TVA", "Déclaration TVA — novembre",   26000),
+    ("f9", dt.date(2027, 5, 15),  "IS",  "Solde IS — exercice 2026",     12000),
+]
+
+
+def _fisc_init():
+    """Sème le calendrier calculé une seule fois (les valeurs vivent ensuite
+    dans les clés des widgets, ce qui permet de détecter les ajustements)."""
+    if "fisc_rows" in st.session_state:
+        return
+    rows = []
+    for rid, d, typ, lib, mnt in _FISC_SEED:
+        st.session_state.setdefault(f"fisc_date_{rid}", d)
+        st.session_state.setdefault(f"fisc_mnt_{rid}", mnt)
+        rows.append({"id": rid, "type": typ, "lib": lib, "date_calc": d,
+                     "montant_calc": mnt, "exclue": False, "creee": False})
+    st.session_state.fisc_rows = rows
+    st.session_state.fisc_seq = 0
+
+
+def _fisc_ajouter():
+    """Crée une échéance manuelle (supprimable, contrairement aux calculées)."""
+    st.session_state.fisc_seq += 1
+    rid = f"u{st.session_state.fisc_seq}"
+    st.session_state[f"fisc_date_{rid}"] = dt.date(2026, 12, 31)
+    st.session_state[f"fisc_mnt_{rid}"] = 0
+    st.session_state.fisc_rows.append(
+        {"id": rid, "type": "Autre", "lib": "Nouvelle échéance", "date_calc": None,
+         "montant_calc": None, "exclue": False, "creee": True})
+
+
+def _fisc_supprimer(rid):
+    st.session_state.fisc_rows = [r for r in st.session_state.fisc_rows if r["id"] != rid]
+
+
+def _fisc_exclure(rid, val):
+    """Exclure ne détruit rien : on mémorise les valeurs pour pouvoir réactiver."""
+    for r in st.session_state.fisc_rows:
+        if r["id"] != rid:
+            continue
+        if val:
+            r["date_save"] = st.session_state.get(f"fisc_date_{rid}", r["date_calc"])
+            r["montant_save"] = st.session_state.get(f"fisc_mnt_{rid}", r["montant_calc"])
+        else:
+            st.session_state[f"fisc_date_{rid}"] = r.get("date_save", r["date_calc"])
+            st.session_state[f"fisc_mnt_{rid}"] = r.get("montant_save", r["montant_calc"])
+        r["exclue"] = val
+
+
+def _fisc_reset(rid):
+    """Rétablit la date et le montant calculés par l'outil."""
+    for r in st.session_state.fisc_rows:
+        if r["id"] == rid and not r["creee"]:
+            st.session_state[f"fisc_date_{rid}"] = r["date_calc"]
+            st.session_state[f"fisc_mnt_{rid}"] = r["montant_calc"]
+
+
+def _fisc_pastille(typ):
+    fond, bord, txt = _FISC_TYPES.get(typ, _FISC_TYPES["Autre"])
+    return ("<span style='display:inline-block;padding:3px 10px;border-radius:11px;font-size:11px;"
+            "background:" + fond + ";border:1px solid " + bord + ";color:" + txt + ";'>" + typ + "</span>")
+
+
+def _fisc_source(r):
+    """Nature exacte de la modification, pour la colonne SOURCE."""
+    if r["creee"]:
+        return "créée par utilisateur", "#5DCAA5"
+    d_mod = st.session_state.get(f"fisc_date_{r['id']}") != r["date_calc"]
+    m_mod = st.session_state.get(f"fisc_mnt_{r['id']}") != r["montant_calc"]
+    if d_mod and m_mod:
+        return "date + montant ajustés", "#5A96FF"
+    if d_mod:
+        return "date ajustée", "#5A96FF"
+    if m_mod:
+        return "montant ajusté", "#5A96FF"
+    return "calculée", "#8a90a0"
+
+
+def _crc_fiscalite_tracker():
+    """Fiscalité Tracker : paramètres du régime + calendrier des échéances.
+    Les échéances calculées ne sont pas supprimables — elles s'excluent (réversible) ;
+    seules les échéances créées par l'utilisateur peuvent être supprimées."""
+    _fisc_init()
+    st.markdown(
+        "<style>"
+        ".st-key-fisc_params{background:#111B2C;border:1px solid #1E2A3D;border-radius:12px;padding:12px 16px;}"
+        ".st-key-fisc_cal{background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;margin-top:12px;}"
+        # champs montant : pas de boutons +/-, texte à gauche
+        "[class*='st-key-fisc_mnt_'] button[data-testid='stNumberInputStepUp'],"
+        "[class*='st-key-fisc_mnt_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
+        "[class*='st-key-fisc_mnt_'] input{text-align:right !important;}"
+        # petits boutons d'action
+        "[class*='st-key-fisc_ex_'] button,[class*='st-key-fisc_rs_'] button,"
+        "[class*='st-key-fisc_del_'] button,[class*='st-key-fisc_re_'] button{"
+        "padding:2px 9px !important;font-size:12px !important;min-height:0 !important;}"
+        ".st-key-fisc_add button{background:rgba(45,107,255,0.14) !important;"
+        "border:1px solid #2D6BFF !important;color:#5A96FF !important;}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
+
+    with st.container(key="fisc_params"):
+        p1, p2, p3, p4, p5, p6 = st.columns([2, 1, 1.3, 1, 1.3, 0.8],
+                                            vertical_alignment="bottom")
+        p1.selectbox("Régime TVA",
+                     ["Réel normal — mensuel", "Réel normal — trimestriel", "Réel simplifié"],
+                     key="fisc_regime")
+        p2.number_input("Taux de TVA (%)", min_value=0.0, max_value=30.0, value=20.0,
+                        step=0.5, key="fisc_taux")
+        p3.date_input("Clôture d'exercice", value=dt.date(2026, 12, 31),
+                      format="DD/MM/YYYY", key="fisc_cloture")
+        p4.selectbox("CFE / CVAE", ["Oui", "Non"], key="fisc_cfe")
+        p5.button("+ Ajouter échéance", key="fisc_add", on_click=_fisc_ajouter,
+                  use_container_width=True)
+        p6.button("Import", key="fisc_import", use_container_width=True)
+        # Rappel de la limite actuelle de la maquette (cf. moteur de régénération).
+        st.markdown(
+            "<div style='font-size:10.5px;color:#E0A04A;margin-top:8px;'>"
+            "⚠️ Maquette — modifier ces paramètres ne régénère pas encore le calendrier : "
+            "le moteur de régénération reste à construire.</div>",
+            unsafe_allow_html=True,
+        )
+
+    with st.container(key="fisc_cal"):
+        st.markdown(
+            "<div style='font-size:15px;font-weight:700;color:#e8ecf4;'>Calendrier des échéances</div>"
+            "<div style='font-size:11.5px;color:#8a90a0;margin-bottom:4px;'>Généré depuis vos paramètres · "
+            "les champs modifiés sont signalés individuellement</div>",
+            unsafe_allow_html=True,
+        )
+        ent = "font-size:10px;font-weight:700;letter-spacing:0.5px;color:#5a6478;"
+        h1, h2, h3, h4, h5, h6 = st.columns([1.5, 0.8, 3, 1.4, 1.6, 1.1])
+        h1.markdown(f"<div style='{ent}'>DATE</div>", unsafe_allow_html=True)
+        h2.markdown(f"<div style='{ent}'>TYPE</div>", unsafe_allow_html=True)
+        h3.markdown(f"<div style='{ent}'>LIBELLÉ</div>", unsafe_allow_html=True)
+        h4.markdown(f"<div style='{ent}text-align:right;'>MONTANT</div>", unsafe_allow_html=True)
+        h5.markdown(f"<div style='{ent}'>SOURCE</div>", unsafe_allow_html=True)
+        h6.markdown(f"<div style='{ent}text-align:right;'>ACTION</div>", unsafe_allow_html=True)
+
+        total, total_exclu, nb_exclu = 0, 0, 0
+        for r in list(st.session_state.fisc_rows):
+            rid = r["id"]
+            c1, c2, c3, c4, c5, c6 = st.columns([1.5, 0.8, 3, 1.4, 1.6, 1.1],
+                                                vertical_alignment="center")
+            if r["exclue"]:
+                gris = "color:#5a6478;text-decoration:line-through;font-size:12.5px;"
+                d_aff = r.get("date_save") or r["date_calc"]
+                m_aff = r.get("montant_save") or r["montant_calc"] or 0
+                c1.markdown(f"<div style='{gris}'>{d_aff.strftime('%d/%m/%Y')}</div>", unsafe_allow_html=True)
+                c2.markdown(f"<span style='color:#5a6478;font-size:11px;'>{r['type']}</span>", unsafe_allow_html=True)
+                c3.markdown(f"<div style='{gris}'>{r['lib']}</div>", unsafe_allow_html=True)
+                c4.markdown(f"<div style='{gris}text-align:right;'>{m_aff:,.0f} €</div>".replace(",", " "),
+                            unsafe_allow_html=True)
+                c5.markdown("<span style='color:#E0A04A;font-size:11px;'>exclue de la projection</span>",
+                            unsafe_allow_html=True)
+                c6.button("réactiver", key=f"fisc_re_{rid}", on_click=_fisc_exclure,
+                          args=(rid, False), use_container_width=True)
+                total_exclu += m_aff
+                nb_exclu += 1
+                continue
+
+            with c1:
+                st.date_input("date", key=f"fisc_date_{rid}", format="DD/MM/YYYY",
+                              label_visibility="collapsed")
+                if not r["creee"] and st.session_state.get(f"fisc_date_{rid}") != r["date_calc"]:
+                    st.markdown("<div style='font-size:10px;color:#5a6478;margin-top:-6px;'>calculé : "
+                                + r["date_calc"].strftime("%d/%m/%Y") + "</div>", unsafe_allow_html=True)
+            c2.markdown(_fisc_pastille(r["type"]), unsafe_allow_html=True)
+            c3.markdown(f"<div style='color:#c3ccdd;font-size:12.5px;'>{r['lib']}</div>",
+                        unsafe_allow_html=True)
+            with c4:
+                st.number_input("montant", step=500, key=f"fisc_mnt_{rid}",
+                                label_visibility="collapsed")
+                if not r["creee"] and st.session_state.get(f"fisc_mnt_{rid}") != r["montant_calc"]:
+                    st.markdown("<div style='font-size:10px;color:#5a6478;text-align:right;margin-top:-6px;'>"
+                                "calculé : " + f"{r['montant_calc']:,.0f}".replace(",", " ") + " €</div>",
+                                unsafe_allow_html=True)
+            lbl, coul = _fisc_source(r)
+            c5.markdown(f"<span style='color:{coul};font-size:11px;'>{lbl}</span>", unsafe_allow_html=True)
+            with c6:
+                if r["creee"]:
+                    st.button("🗑", key=f"fisc_del_{rid}", on_click=_fisc_supprimer,
+                              args=(rid,), help="Supprimer cette échéance", use_container_width=True)
+                else:
+                    a1, a2 = st.columns(2)
+                    if lbl != "calculée":
+                        a1.button("↺", key=f"fisc_rs_{rid}", on_click=_fisc_reset,
+                                  args=(rid,), help="Rétablir la valeur calculée",
+                                  use_container_width=True)
+                    a2.button("⊘", key=f"fisc_ex_{rid}", on_click=_fisc_exclure,
+                              args=(rid, True), help="Exclure de la projection (réversible)",
+                              use_container_width=True)
+            total += st.session_state.get(f"fisc_mnt_{rid}", 0)
+
+        note = ""
+        if nb_exclu:
+            note = ("<div style='font-size:11px;color:#E0A04A;margin-top:2px;'>"
+                    + str(nb_exclu) + " échéance(s) exclue(s) de la projection : "
+                    + f"{total_exclu:,.0f}".replace(",", " ") + " €</div>")
+        st.markdown(
+            "<div style='border-top:1px solid #1E2A3D;margin-top:10px;padding-top:10px;"
+            "display:flex;align-items:center;'>"
+            "<span style='flex:1;font-size:13.5px;font-weight:700;color:#fff;'>Total des montants</span>"
+            "<span style='font-size:14px;font-weight:800;color:#E0604A;'>"
+            + f"{total:,.0f}".replace(",", " ") + " €</span></div>" + note,
+            unsafe_allow_html=True,
+        )
+
+
 def _report_placements():
     """Onglet Placements : détail par produit (montant, rendement, gain, maturité)."""
     cell = "padding:14px 10px;border-top:1px solid #20202c;font-size:15px;"
@@ -1732,8 +1959,7 @@ def ecran_dashboard():
         if sub == "Charges Tracker":
             _crc_charges_tracker()
         elif sub == "Fiscalité Tracker":
-            _placeholder_onglet("Fiscalité Tracker",
-                                "Suivi des charges et échéances fiscales (IS, TVA, CFE…). À venir.")
+            _crc_fiscalite_tracker()
         elif sub == "Revenu Tracker":
             _placeholder_onglet("Revenu Tracker",
                                 "Suivi du chiffre d'affaires récurrent vs variable / aléatoire. À venir.")
