@@ -1523,7 +1523,12 @@ def _crc_fiscalite_tracker():
         h3.markdown(f"<div style='{ent}'>LIBELLÉ</div>", unsafe_allow_html=True)
         h4.markdown(f"<div style='{ent}text-align:right;'>MONTANT</div>", unsafe_allow_html=True)
         h5.markdown(f"<div style='{ent}'>SOURCE</div>", unsafe_allow_html=True)
-        h6.markdown(f"<div style='{ent}text-align:right;'>ACTION</div>", unsafe_allow_html=True)
+        # ACTION est centré sur la même demi-colonne que les boutons (voir plus bas),
+        # sinon l'intitulé se retrouve décalé par rapport à l'icône.
+        with h6:
+            _ha1, _ha2 = st.columns(2)
+            _ha2.markdown(f"<div style='{ent}text-align:center;'>ACTION</div>",
+                          unsafe_allow_html=True)
 
         total, total_exclu, nb_exclu = 0, 0, 0
         for r in list(st.session_state.fisc_rows):
@@ -1566,11 +1571,13 @@ def _crc_fiscalite_tracker():
             lbl, coul = _fisc_source(r)
             c5.markdown(f"<span style='color:{coul};font-size:11px;'>{lbl}</span>", unsafe_allow_html=True)
             with c6:
+                # Même gabarit pour tous : ↺ en a1, ⊘ ou 🗑 en a2 (donc même taille).
+                a1, a2 = st.columns(2)
                 if r["creee"]:
-                    st.button("🗑", key=f"fisc_del_{rid}", on_click=_fisc_supprimer,
-                              args=(rid,), help="Supprimer cette échéance", use_container_width=True)
+                    a2.button("🗑", key=f"fisc_del_{rid}", on_click=_fisc_supprimer,
+                              args=(rid,), help="Supprimer cette échéance",
+                              use_container_width=True)
                 else:
-                    a1, a2 = st.columns(2)
                     if lbl != "calculée":
                         a1.button("↺", key=f"fisc_rs_{rid}", on_click=_fisc_reset,
                                   args=(rid,), help="Rétablir la valeur calculée",
@@ -1593,6 +1600,8 @@ def _crc_fiscalite_tracker():
             + f"{total:,.0f}".replace(",", " ") + " €</span></div>" + note,
             unsafe_allow_html=True,
         )
+    # Marge basse : évite que le total soit masqué par le bouton flottant de Streamlit.
+    st.markdown("<div style='height:80px;'></div>", unsafe_allow_html=True)
 
 
 def _report_placements():
