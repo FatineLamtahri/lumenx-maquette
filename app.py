@@ -1386,31 +1386,40 @@ _FISC_TYPES = {
     "Autre": ("rgba(107,118,136,0.18)", "#6b7688", "#aab3c7"),
 }
 # Calendrier calculé depuis le régime (réel normal mensuel, clôture 31/12).
-# (id, date, type, libellé, montant €)
+# Fenêtre commune à toute l'application : 3 mois réalisés + 3 mois projetés minimum,
+# ancrée sur le dernier relevé bancaire (31/07/2026).
+# (id, date, type, libellé, montant €, réalisé)
 _FISC_SEED = [
-    ("f1", dt.date(2026, 8, 19),  "TVA", "Déclaration TVA — juillet",    23000),
-    ("f2", dt.date(2026, 9, 15),  "IS",  "Acompte IS n°3",               22000),
-    ("f3", dt.date(2026, 9, 21),  "TVA", "Déclaration TVA — août",       24000),
-    ("f4", dt.date(2026, 10, 19), "TVA", "Déclaration TVA — septembre",  25000),
-    ("f5", dt.date(2026, 11, 20), "TVA", "Déclaration TVA — octobre",    25000),
-    ("f6", dt.date(2026, 12, 15), "IS",  "Acompte IS n°4",               24000),
-    ("f7", dt.date(2026, 12, 15), "CFE", "Solde CFE",                     8000),
-    ("f8", dt.date(2026, 12, 21), "TVA", "Déclaration TVA — novembre",   26000),
-    ("f9", dt.date(2027, 5, 15),  "IS",  "Solde IS — exercice 2026",     12000),
+    ("r1", dt.date(2026, 5, 19),  "TVA", "Déclaration TVA — avril",      21000, True),
+    ("r2", dt.date(2026, 6, 15),  "IS",  "Acompte IS n°2",               22000, True),
+    ("r3", dt.date(2026, 6, 19),  "TVA", "Déclaration TVA — mai",        22000, True),
+    ("r4", dt.date(2026, 7, 21),  "TVA", "Déclaration TVA — juin",       24000, True),
+    ("f1", dt.date(2026, 8, 19),  "TVA", "Déclaration TVA — juillet",    23000, False),
+    ("f2", dt.date(2026, 9, 15),  "IS",  "Acompte IS n°3",               22000, False),
+    ("f3", dt.date(2026, 9, 21),  "TVA", "Déclaration TVA — août",       24000, False),
+    ("f4", dt.date(2026, 10, 19), "TVA", "Déclaration TVA — septembre",  25000, False),
+    ("f5", dt.date(2026, 11, 20), "TVA", "Déclaration TVA — octobre",    25000, False),
+    ("f6", dt.date(2026, 12, 15), "IS",  "Acompte IS n°4",               24000, False),
+    ("f7", dt.date(2026, 12, 15), "CFE", "Solde CFE",                     8000, False),
+    ("f8", dt.date(2026, 12, 21), "TVA", "Déclaration TVA — novembre",   26000, False),
+    ("f9", dt.date(2027, 5, 15),  "IS",  "Solde IS — exercice 2026",     12000, False),
 ]
 
 
 def _fisc_init():
-    """Sème le calendrier calculé une seule fois (les valeurs vivent ensuite
-    dans les clés des widgets, ce qui permet de détecter les ajustements)."""
+    """Sème le calendrier une seule fois. Les échéances réalisées sont des faits
+    (pas de widget, pas d'exclusion possible) ; les échéances à venir vivent dans
+    les clés des widgets, ce qui permet de détecter les ajustements."""
     if "fisc_rows" in st.session_state:
         return
     rows = []
-    for rid, d, typ, lib, mnt in _FISC_SEED:
-        st.session_state.setdefault(f"fisc_date_{rid}", d)
-        st.session_state.setdefault(f"fisc_mnt_{rid}", mnt)
+    for rid, d, typ, lib, mnt, realise in _FISC_SEED:
+        if not realise:
+            st.session_state.setdefault(f"fisc_date_{rid}", d)
+            st.session_state.setdefault(f"fisc_mnt_{rid}", mnt)
         rows.append({"id": rid, "type": typ, "lib": lib, "date_calc": d,
-                     "montant_calc": mnt, "exclue": False, "creee": False})
+                     "montant_calc": mnt, "exclue": False, "creee": False,
+                     "realise": realise})
     st.session_state.fisc_rows = rows
     st.session_state.fisc_seq = 0
 
@@ -1464,6 +1473,8 @@ def _fisc_pastille(typ):
 
 def _fisc_source(r):
     """Nature exacte de la modification, pour la colonne SOURCE."""
+    if r.get("realise"):
+        return "réalisé", "#5DCAA5"
     if r["creee"]:
         return "créée par utilisateur", "#5DCAA5"
     d_mod = st.session_state.get(f"fisc_date_{r['id']}") != r["date_calc"]
@@ -1543,11 +1554,27 @@ def _crc_fiscalite_tracker():
             _ha2.markdown(f"<div style='{ent}text-align:center;'>ACTION</div>",
                           unsafe_allow_html=True)
 
-        total, total_exclu, nb_exclu = 0, 0, 0
+        total, total_exclu, nb_exclu, total_realise = 0, 0, 0, 0
         for r in list(st.session_state.fisc_rows):
             rid = r["id"]
             c1, c2, c3, c4, c5, c6 = st.columns([1.5, 0.8, 3, 1.4, 1.6, 1.1],
                                                 vertical_alignment="center")
+            if r.get("realise"):
+                # Échéance passée : c'est un fait constaté sur les relevés, donc
+                # ni modifiable ni excluable. Elle alimente les charges fixes des
+                # mois réalisés (dénominateur de la couverture).
+                gris = "color:#8a90a0;font-size:12.5px;"
+                c1.markdown(f"<div style='{gris}'>{r['date_calc'].strftime('%d/%m/%Y')}</div>",
+                            unsafe_allow_html=True)
+                c2.markdown(_fisc_pastille(r["type"]), unsafe_allow_html=True)
+                c3.markdown(f"<div style='{gris}'>{r['lib']}</div>", unsafe_allow_html=True)
+                c4.markdown(f"<div style='{gris}text-align:right;'>"
+                            + f"{r['montant_calc']:,.0f}".replace(",", " ") + " €</div>",
+                            unsafe_allow_html=True)
+                c5.markdown("<span style='color:#5DCAA5;font-size:11px;'>réalisé</span>",
+                            unsafe_allow_html=True)
+                total_realise += r["montant_calc"]
+                continue
             if r["exclue"]:
                 gris = "color:#5a6478;text-decoration:line-through;font-size:12.5px;"
                 d_aff = r.get("date_save") or r["date_calc"]
@@ -1606,7 +1633,9 @@ def _crc_fiscalite_tracker():
                     unsafe_allow_html=True)
         _t1, _t2, t3, t4, _t5, _t6 = st.columns([1.5, 0.8, 3, 1.4, 1.6, 1.1],
                                                 vertical_alignment="center")
-        t3.markdown("<div style='font-size:13.5px;font-weight:700;color:#fff;'>Total des montants</div>",
+        t3.markdown("<div style='font-size:13.5px;font-weight:700;color:#fff;'>Total à venir</div>"
+                    "<div style='font-size:11px;color:#8a90a0;'>Réalisé sur les 3 derniers mois : "
+                    + f"{total_realise:,.0f}".replace(",", " ") + " €</div>",
                     unsafe_allow_html=True)
         # padding-right : aligne le total sur les chiffres saisis dans les champs montant.
         t4.markdown("<div style='font-size:14px;font-weight:800;color:#E0604A;"
