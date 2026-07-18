@@ -1091,7 +1091,11 @@ def _barre(label, valeur, pct, couleur="#2D6BFF"):
 
 
 # ---- Compte de résultat cash · Vue d'ensemble --------------------------------
-_CRC_CH_FIX = 119  # charges fixes mensuelles (k€) = ext. récurrentes 90 + internes 25 + financières 4
+# Charges fixes mensuelles et taux de charges variables : DÉRIVÉS du Charges Tracker,
+# source unique. Le taux variable exprime un poids par rapport au CA — à ne pas
+# confondre avec un taux de croissance.
+_CRC_CH_FIX = 154.2   # k€/mois = lignes 'stable' + 'échéancier' du Charges Tracker
+_CRC_TX_VAR = 0.135   # 13,5 % du CA = lignes 'variable' du Charges Tracker
 # (mois, historique, CA récurrent, CA variable/aléatoire, charges aléatoires) en k€
 _CRC_MOIS = [
     ("Jan", True, 182, 18, 4), ("Fév", True, 190, 20, 6), ("Mar", True, 176, 15, 3),
@@ -1102,10 +1106,11 @@ _CRC_MOIS = [
 
 
 def _crc_calc(m):
-    """Dérive les agrégats d'un mois (charges variables = 28 % du CA)."""
+    """Dérive les agrégats d'un mois. Charges fixes et taux variable viennent du
+    Charges Tracker (_CRC_CH_FIX / _CRC_TX_VAR), pas de valeurs en dur."""
     lbl, hist, ca_rec, ca_var, ch_alea = m
     ca = ca_rec + ca_var
-    ch_var = round(0.28 * ca)
+    ch_var = round(_CRC_TX_VAR * ca)
     dec = _CRC_CH_FIX + ch_var + ch_alea
     return {"lbl": lbl, "hist": hist, "ca_rec": ca_rec, "ca_var": ca_var, "ca": ca,
             "ch_rec": _CRC_CH_FIX, "ch_var": ch_var, "ch_alea": ch_alea,
@@ -1267,44 +1272,262 @@ def _report_flux():
         st.markdown(_crc_kpi_html(rows, sel), unsafe_allow_html=True)
 
 
-# ---- Charges Tracker (lecture seule) : taxonomie v4 × comportement prévisionnel ----
-# comportement -> (fond pastille, bordure, texte, inclus dans le prévisionnel)
-_CT_COMP = {
-    "Fixe récurrent":            ("rgba(45,107,255,0.16)",  "#2D6BFF", "#9fc0ff", True),
-    "Échéancier légal":          ("rgba(127,119,221,0.16)", "#7F77DD", "#b9b3f0", True),
-    "Variable lié à l'activité": ("rgba(93,202,165,0.16)",  "#5DCAA5", "#8fe0c4", True),
-    "Ponctuel":                  ("rgba(107,118,136,0.16)", "#6b7688", "#aab3c7", False),
-    "Ponctuel imprévisible":     ("rgba(107,118,136,0.16)", "#6b7688", "#aab3c7", False),
+# ---- Charges Tracker : vue mensuelle (3 mois réalisés + 3 mois projetés) ----------
+# Fenêtre temporelle commune à toute l'application, ancrée sur le dernier relevé
+# bancaire (31/07/2026). Écran symétrique du Revenu Tracker.
+_CT_MOIS_REAL = [(2026, 5, "Mai"), (2026, 6, "Juin"), (2026, 7, "Juil")]
+_CT_MOIS_PROJ = [(2026, 8, "Août"), (2026, 9, "Sept"), (2026, 10, "Oct")]
+
+# profil -> (libellé affiché, compte dans les CHARGES FIXES)
+# Les charges fixes = 'stable' + 'échéancier'. C'est le dénominateur de la
+# couverture affichée dans le Revenu Tracker.
+_CT_PROFILS = {
+    "stable":     ("récurrent · stable", True),
+    "échéancier": ("récurrent · échéancier", True),
+    "variable":   ("récurrent · variable", False),
+    "ponctuel":   ("ponctuel", False),
 }
-# (Level 1, [(Level 2, comportement, montant 12 mois en k€), ...])
-_CT_DATA = [
-    ("Exploitation", [
-        ("Rémunérations", "Fixe récurrent", 900),
-        ("Charges sociales", "Échéancier légal", 380),
-        ("Achats liés à l'activité", "Variable lié à l'activité", 320),
-        ("Locaux & énergie", "Fixe récurrent", 180),
-        ("Assurances & abonnements", "Fixe récurrent", 96),
-        ("Honoraires", "Fixe récurrent", 60),
-        ("Autres charges externes", "Variable lié à l'activité", 55),
-        ("Déplacements & véhicules", "Ponctuel", 40),
-        ("Avantages sociaux", "Fixe récurrent", 30),
-    ]),
-    ("Impôts & taxes", [
-        ("Impôts & taxes (IS, CFE, CVAE)", "Échéancier légal", 120),
-    ]),
-    ("Financement", [
-        ("Emprunts (échéances)", "Fixe récurrent", 84),
-        ("Résultat financier (agios)", "Variable lié à l'activité", 12),
-    ]),
-    ("Exceptionnel", [
-        ("Charges exceptionnelles", "Ponctuel imprévisible", 25),
-    ]),
+
+# (id, Level 1, Level 2, profil, inclus dans le prévisionnel, réalisés k€, justification)
+# reals = None -> valeurs dérivées du calendrier fiscal (ligne impôts).
+_CT_CATS = [
+    ("rem", "Exploitation", "Rémunérations", "stable", True, (74.5, 75.0, 75.5),
+     "Masse salariale stable sur 12 mois, écart ±1 % — reconduite à l'identique"),
+    ("soc", "Exploitation", "Charges sociales", "stable", True, (31.5, 31.7, 31.9),
+     "Échéancier légal mensuel, indexé sur la masse salariale — dates connues"),
+    ("ach", "Exploitation", "Achats liés à l'activité", "variable", True, (25.8, 28.1, 26.2),
+     "Indexé sur le CA : 11,0 % observé sur 12 mois — suit la projection de revenus"),
+    ("loc", "Exploitation", "Locaux & énergie", "stable", True, (15.0, 15.0, 15.0),
+     "Loyer contractuel + énergie lissée — pas d'indexation avant janvier"),
+    ("abo", "Exploitation", "Assurances & abonnements", "stable", True, (8.0, 8.0, 8.0),
+     "Prélèvements fixes identiques sur 12 mois"),
+    ("hon", "Exploitation", "Honoraires", "stable", True, (5.0, 5.0, 5.0),
+     "Expert-comptable et conseil, forfait mensuel"),
+    ("ace", "Exploitation", "Autres charges externes", "variable", True, (4.2, 5.1, 4.5),
+     "Moyenne 3 mois — dispersion faible, pas d'indexation retenue"),
+    ("dep", "Exploitation", "Déplacements & véhicules", "ponctuel", False, (2.1, 5.4, 2.4),
+     "Aucune périodicité détectée — exclu de la projection, réintégrable d'un clic"),
+    ("avt", "Exploitation", "Avantages sociaux", "stable", True, (2.5, 2.5, 2.5),
+     "Tickets restaurant et mutuelle, montant fixe par salarié"),
+    ("imp", "Impôts & taxes", "Impôts & taxes (IS, CFE, CVAE)", "échéancier", True, None,
+     "Montants et dates issus du calendrier fiscal — acomptes trimestriels, non lissés"),
+    ("emp", "Financement", "Emprunts (échéances)", "stable", True, (7.0, 7.0, 7.0),
+     "Tableau d'amortissement contractuel — échéance fixe jusqu'en 2029"),
+    ("fin", "Financement", "Résultat financier (agios)", "variable", True, (0.9, 1.1, 1.0),
+     "Agios et frais bancaires — moyenne 3 mois"),
+    ("exc", "Exceptionnel", "Charges exceptionnelles", "ponctuel", False, (0.0, 25.0, 0.0),
+     "Événement isolé en juin — imprévisible, exclu de la projection"),
 ]
 
 
-def _ct_montant(v):
-    """k€ -> '2,30 M€' si >= 1000, sinon '900 k€'."""
-    return (f"{v/1000:.2f} M€".replace(".", ",")) if v >= 1000 else (f"{v} k€")
+def _ct_k(v):
+    """Formate un montant en k€ à une décimale, séparateurs français."""
+    return f"{v:,.1f}".replace(",", " ").replace(".", ",")
+
+
+def _ct_impots_mensuels():
+    """IS et CFE par mois, DÉRIVÉS du calendrier fiscal : source unique de vérité.
+    La TVA est volontairement exclue (neutre au compte de résultat)."""
+    par_mois = {}
+    for _rid, d, typ, _lib, mnt, _real in _FISC_SEED:
+        if typ in ("IS", "CFE"):
+            par_mois[(d.year, d.month)] = par_mois.get((d.year, d.month), 0.0) + mnt / 1000.0
+    return par_mois
+
+
+def _ct_reals(cat):
+    """Les 3 mois réalisés d'une catégorie."""
+    if cat[5] is None:
+        pm = _ct_impots_mensuels()
+        return [pm.get((y, m), 0.0) for y, m, _ in _CT_MOIS_REAL]
+    return list(cat[5])
+
+
+def _ct_init():
+    """Sème l'état des projections : mode de réglage et valeurs par défaut."""
+    if st.session_state.get("ct_seed"):
+        return
+    for cat in _CT_CATS:
+        cid, _l1, _lib, profil, inclus = cat[0], cat[1], cat[2], cat[3], cat[4]
+        if profil == "échéancier" or not inclus:
+            continue
+        base = round(sum(_ct_reals(cat)) / 3.0, 1)
+        st.session_state.setdefault(f"ct_mode_{cid}", "€")
+        st.session_state.setdefault(f"ct_g_{cid}", 0.0)
+        for k in range(3):
+            st.session_state.setdefault(f"ct_p{k}_{cid}", base)
+    st.session_state.ct_seed = True
+
+
+def _ct_projections(cat, base):
+    """Les 3 mois projetés. En mode %, le taux de CROISSANCE est appliqué au dernier
+    chiffre de proche en proche (base×(1+g), puis ×(1+g)...). À ne pas confondre avec
+    le % de charges variables, qui exprime un poids par rapport au CA."""
+    cid, profil, inclus = cat[0], cat[3], cat[4]
+    if profil == "échéancier":
+        pm = _ct_impots_mensuels()
+        return [pm.get((y, m), 0.0) for y, m, _ in _CT_MOIS_PROJ]
+    if not inclus:
+        return None
+    if st.session_state.get(f"ct_mode_{cid}", "€") == "%":
+        g = st.session_state.get(f"ct_g_{cid}", 0.0) / 100.0
+        vals, v = [], base
+        for _ in range(3):
+            v = v * (1.0 + g)
+            vals.append(round(v, 1))
+        return vals
+    return [round(st.session_state.get(f"ct_p{k}_{cid}", base), 1) for k in range(3)]
+
+
+def _crc_charges_tracker():
+    """Charges Tracker : 3 mois réalisés + 3 mois projetés par catégorie de taxonomie.
+    La ligne 'Charges fixes du mois' alimente la couverture du Revenu Tracker."""
+    _ct_init()
+    st.markdown(
+        "<style>"
+        ".st-key-ct_card{background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;margin-top:12px;}"
+        "[class*='st-key-ct_p'] button[data-testid='stNumberInputStepUp'],"
+        "[class*='st-key-ct_p'] button[data-testid='stNumberInputStepDown'],"
+        "[class*='st-key-ct_g_'] button[data-testid='stNumberInputStepUp'],"
+        "[class*='st-key-ct_g_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
+        "[class*='st-key-ct_p'] input,[class*='st-key-ct_g_'] input{text-align:right !important;font-size:12px !important;}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
+    rat = [2.4, 1.2, 0.6, 0.55, 0.55, 0.55, 0.7, 1.1, 0.95, 0.95, 0.95]
+    ent = "font-size:9.5px;font-weight:700;letter-spacing:0.5px;color:#5a6478;"
+    gris = "color:#c3ccdd;font-size:11.5px;text-align:right;"
+
+    # Agrégats par mois : total, et charges fixes (stable + échéancier)
+    tot_r = [0.0, 0.0, 0.0]
+    tot_p = [0.0, 0.0, 0.0]
+    fix_r = [0.0, 0.0, 0.0]
+    fix_p = [0.0, 0.0, 0.0]
+    for cat in _CT_CATS:
+        reals = _ct_reals(cat)
+        base = round(sum(reals) / 3.0, 1)
+        projs = _ct_projections(cat, base)
+        est_fixe = _CT_PROFILS[cat[3]][1]
+        for k in range(3):
+            tot_r[k] += reals[k]
+            if est_fixe:
+                fix_r[k] += reals[k]
+            if projs:
+                tot_p[k] += projs[k]
+                if est_fixe:
+                    fix_p[k] += projs[k]
+
+    st.markdown(
+        '<div style="background:rgba(45,107,255,0.08);border-radius:8px;padding:9px 14px;'
+        'font-size:12px;color:#9fc0ff;">Dernier relevé bancaire : 31/07/2026 — 3 mois réalisés '
+        '+ 3 mois projetés · montants en k€ · le % est un taux de <b>croissance</b> appliqué au mois précédent</div>'
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px;">'
+        + _ct_tuile("Charges fixes · août 2026", _ct_k(fix_p[0]) + " k€", "#fff")
+        + _ct_tuile("Charges variables · août 2026", _ct_k(tot_p[0] - fix_p[0]) + " k€", "#fff")
+        + _ct_tuile("Ponctuel · exclu du prévisionnel",
+                    _ct_k(sum(sum(_ct_reals(c)) / 3.0 for c in _CT_CATS if not c[4])) + " k€", "#8a93ad")
+        + _ct_tuile("Total projeté · août 2026", _ct_k(tot_p[0]) + " k€", "#E0604A")
+        + '</div>', unsafe_allow_html=True)
+
+    with st.container(key="ct_card"):
+        h = st.columns(rat)
+        for i, lbl in enumerate(["POSTE", "PROFIL", "PRÉV."]):
+            h[i].markdown(f"<div style='{ent}'>{lbl}</div>", unsafe_allow_html=True)
+        for i, (_y, _m, nom) in enumerate(_CT_MOIS_REAL):
+            h[3 + i].markdown(f"<div style='{ent}text-align:right;'>{nom.upper()}</div>", unsafe_allow_html=True)
+        h[6].markdown(f"<div style='{ent}text-align:right;'>BASE</div>", unsafe_allow_html=True)
+        h[7].markdown(f"<div style='{ent}text-align:center;'>MODE</div>", unsafe_allow_html=True)
+        for i, (_y, _m, nom) in enumerate(_CT_MOIS_PROJ):
+            h[8 + i].markdown(f"<div style='{ent}text-align:center;'>{nom.upper()}</div>", unsafe_allow_html=True)
+        st.markdown("<div style='border-top:1px solid #1E2A3D;'></div>", unsafe_allow_html=True)
+
+        niveau = None
+        for cat in _CT_CATS:
+            cid, l1, lib, profil, inclus, _r, justif = cat
+            if l1 != niveau:
+                niveau = l1
+                st.markdown("<div style='font-size:11.5px;font-weight:700;letter-spacing:0.5px;"
+                            "color:#c3ccdd;margin:10px 0 2px;'>" + l1.upper() + "</div>",
+                            unsafe_allow_html=True)
+            reals = _ct_reals(cat)
+            base = round(sum(reals) / 3.0, 1)
+            projs = _ct_projections(cat, base)
+            c = st.columns(rat, vertical_alignment="center")
+            coul_lib = "#fff" if inclus else "#c3ccdd"
+            c[0].markdown(f"<div style='color:{coul_lib};font-size:12px;'>{lib}</div>", unsafe_allow_html=True)
+            c[1].markdown(f"<div style='color:#8a90a0;font-size:10.5px;'>{_CT_PROFILS[profil][0]}</div>",
+                          unsafe_allow_html=True)
+            c[2].markdown("<div style='font-size:10.5px;color:"
+                          + ("#5DCAA5;'>inclus" if inclus else "#8a93ad;'>exclu") + "</div>",
+                          unsafe_allow_html=True)
+            for k in range(3):
+                txt = "—" if (profil == "échéancier" and reals[k] == 0) else _ct_k(reals[k])
+                c[3 + k].markdown(f"<div style='{gris}'>{txt}</div>", unsafe_allow_html=True)
+            c[6].markdown(f"<div style='color:#fff;font-size:11.5px;text-align:right;font-weight:600;'>"
+                          f"{_ct_k(base)}</div>", unsafe_allow_html=True)
+            # Mode de réglage
+            if profil == "échéancier":
+                c[7].markdown("<div style='font-size:10px;color:#E0A04A;text-align:center;'>calendrier</div>",
+                              unsafe_allow_html=True)
+            elif not inclus:
+                c[7].markdown("<div style='font-size:10px;color:#5a6478;text-align:center;'>—</div>",
+                              unsafe_allow_html=True)
+            else:
+                with c[7]:
+                    mode = st.pills("mode", ["€", "%"], key=f"ct_mode_{cid}",
+                                    label_visibility="collapsed")
+                    if not mode:
+                        mode = st.session_state.get(f"ct_mode_{cid}", "€") or "€"
+                    if mode == "%":
+                        st.number_input("taux", step=0.5, key=f"ct_g_{cid}",
+                                        label_visibility="collapsed")
+            # Projections
+            for k in range(3):
+                if projs is None:
+                    c[8 + k].markdown("<div style='text-align:right;color:#5a6478;font-size:11.5px;'>—</div>",
+                                      unsafe_allow_html=True)
+                elif profil == "échéancier":
+                    coul = "#E0A04A" if projs[k] else "#5a6478"
+                    c[8 + k].markdown(f"<div style='text-align:right;color:{coul};font-size:11.5px;"
+                                      f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
+                elif st.session_state.get(f"ct_mode_{cid}", "€") == "%":
+                    c[8 + k].markdown(f"<div style='text-align:right;color:#9fc0ff;font-size:11.5px;"
+                                      f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
+                else:
+                    c[8 + k].number_input("p", step=0.5, key=f"ct_p{k}_{cid}",
+                                          label_visibility="collapsed")
+            st.markdown(f"<div style='font-size:9.5px;color:#5a6478;margin:-6px 0 4px;'>{justif}</div>",
+                        unsafe_allow_html=True)
+
+        # Totaux
+        st.markdown("<div style='border-top:1px solid #1E2A3D;margin-top:6px;'></div>",
+                    unsafe_allow_html=True)
+        t = st.columns(rat, vertical_alignment="center")
+        t[0].markdown("<div style='font-size:11.5px;font-weight:700;color:#c3ccdd;'>Charges fixes du mois</div>",
+                      unsafe_allow_html=True)
+        for k in range(3):
+            t[3 + k].markdown(f"<div style='{gris}font-weight:700;'>{_ct_k(fix_r[k])}</div>",
+                              unsafe_allow_html=True)
+        for k in range(3):
+            coul = "#E0A04A" if fix_p[k] > fix_p[(k + 1) % 3] or fix_p[k] > 150 else "#c3ccdd"
+            t[8 + k].markdown(f"<div style='text-align:right;color:{coul};font-size:11.5px;"
+                              f"font-weight:700;'>{_ct_k(fix_p[k])}</div>", unsafe_allow_html=True)
+        g = st.columns(rat, vertical_alignment="center")
+        g[0].markdown("<div style='font-size:13px;font-weight:700;color:#fff;'>Total des charges</div>",
+                      unsafe_allow_html=True)
+        for k in range(3):
+            g[3 + k].markdown(f"<div style='{gris}font-weight:700;'>{_ct_k(tot_r[k])}</div>",
+                              unsafe_allow_html=True)
+        for k in range(3):
+            g[8 + k].markdown(f"<div style='text-align:right;color:#E0604A;font-size:12.5px;"
+                              f"font-weight:800;'>{_ct_k(tot_p[k])}</div>", unsafe_allow_html=True)
+
+    st.markdown(
+        "<div style='background:rgba(224,160,74,0.06);border-radius:8px;padding:10px 14px;"
+        "margin-top:12px;font-size:11px;color:#f0c489;'>La ligne « Charges fixes du mois » est le "
+        "dénominateur de la couverture du Revenu Tracker. Elle n'est pas plate : les mois portant un "
+        "acompte d'IS pèsent plus lourd. Montants et dates des impôts proviennent du calendrier fiscal.</div>"
+        "<div style='height:80px;'></div>", unsafe_allow_html=True)
 
 
 def _ct_tuile(titre, valeur, coul, suffixe=""):
@@ -1312,69 +1535,6 @@ def _ct_tuile(titre, valeur, coul, suffixe=""):
     return ('<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:12px;padding:12px 16px;">'
             '<div style="font-size:12px;color:#8a90a0;">' + titre + '</div>'
             '<div style="font-size:22px;font-weight:800;color:' + coul + ';margin-top:4px;">' + valeur + suf + '</div></div>')
-
-
-def _ct_leg(coul, txt):
-    return ('<span style="display:inline-flex;align-items:center;gap:6px;">'
-            '<span style="width:12px;height:12px;border-radius:3px;background:' + coul + ';display:inline-block;"></span>'
-            + txt + '</span>')
-
-
-def _ct_ligne(nom, comp, montant):
-    """Ligne de charge. La pastille a des dimensions FIXES (largeur/hauteur identiques
-    pour toutes les catégories), texte centré, calées sur le libellé le plus long."""
-    fond, bord, txt, inclus = _CT_COMP[comp]
-    mcol = "#fff" if inclus else "#c3ccdd"
-    return ('<div style="display:flex;align-items:center;padding:6px 0;">'
-            '<span style="width:280px;flex-shrink:0;">'
-            '<span style="display:inline-block;box-sizing:border-box;width:254px;height:26px;'
-            'line-height:24px;text-align:center;border-radius:13px;'
-            'font-size:12.5px;font-weight:500;'
-            'background:' + fond + ';border:1px solid ' + bord + ';color:' + txt + ';">' + nom + '</span></span>'
-            '<span style="flex:1;color:#8a90a0;font-size:12px;">' + comp + '</span>'
-            '<span style="width:110px;flex-shrink:0;font-size:11.5px;color:'
-            + ("#5DCAA5" if inclus else "#8a93ad") + ';">'
-            + ("inclus" if inclus else "exclu") + '</span>'
-            '<span style="width:110px;flex-shrink:0;text-align:right;color:' + mcol
-            + ';font-size:13px;font-weight:600;">' + _ct_montant(montant) + '</span></div>')
-
-
-def _crc_charges_tracker():
-    """Charges Tracker (lecture seule) : décaissements des 12 derniers mois classés
-    par taxonomie (Level 1 / Level 2). La couleur de la pastille = comportement
-    prévisionnel ; gris = ponctuel, exclu du prévisionnel."""
-    allrows = [r for _, rs in _CT_DATA for r in rs]
-    total = sum(m for _, _, m in allrows)
-    inclus = sum(m for _, c, m in allrows if _CT_COMP[c][3])
-    exclu = total - inclus
-    pct_inclus = round(inclus / total * 100)
-
-    tuiles = ('<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:6px;">'
-              + _ct_tuile("Total charges · 12 mois", _ct_montant(total), "#fff")
-              + _ct_tuile("Inclus dans le prévisionnel", _ct_montant(inclus), "#5DCAA5", f"{pct_inclus} %")
-              + _ct_tuile("Exclu (ponctuel)", _ct_montant(exclu), "#8a93ad")
-              + _ct_tuile("Catégories suivies", str(len(allrows)), "#fff")
-              + '</div>')
-    leg = ('<div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:14px 2px 8px;font-size:11.5px;color:#c3ccdd;">'
-           + _ct_leg("#2D6BFF", "Fixe récurrent") + _ct_leg("#7F77DD", "Échéancier légal")
-           + _ct_leg("#5DCAA5", "Variable lié à l'activité") + _ct_leg("#6b7688", "Ponctuel / imprévisible")
-           + '</div>')
-    entete = ('<div style="display:flex;align-items:center;padding:2px 0 6px;font-size:10px;'
-              'letter-spacing:0.5px;color:#5a6478;">'
-              '<span style="width:280px;flex-shrink:0;">POSTE</span>'
-              '<span style="flex:1;">COMPORTEMENT PRÉVISIONNEL</span>'
-              '<span style="width:110px;flex-shrink:0;">PRÉVISIONNEL</span>'
-              '<span style="width:110px;flex-shrink:0;text-align:right;">MONTANT · 12 MOIS</span></div>')
-    corps = ''
-    for l1, rs in _CT_DATA:
-        corps += ('<div style="font-size:12.5px;font-weight:700;letter-spacing:0.5px;color:#e8ecf4;'
-                  'margin:14px 0 4px;border-bottom:1px solid #1E2A3D;padding-bottom:6px;">' + l1.upper() + '</div>')
-        for nom, comp, montant in rs:
-            corps += _ct_ligne(nom, comp, montant)
-    carte = ('<div style="background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px 18px;margin-top:14px;">'
-             + entete + corps + '</div>')
-    st.markdown(tuiles + leg + carte + '<div style="height:80px;"></div>',
-                unsafe_allow_html=True)
 
 
 # ---- Fiscalité Tracker : paramètres + calendrier des échéances --------------------
@@ -1722,7 +1882,7 @@ def _placeholder_onglet(titre, desc=""):
 _HYP_ROWS = [
     (0,  "CA récurrent",                210000, "€",       1000, dt.date(2026, 8, 5),  "rev", 0, 0),
     (1,  "CA ponctuel",                  15000, "€",       1000, dt.date(2026, 8, 20), "rev", 0, 1),
-    (2,  "Charges variables",               28, "% du CA",    1, dt.date(2026, 8, 10), "chg", 0, 2),
+    (2,  "Charges variables",             13.5, "% du CA",  0.5, dt.date(2026, 8, 10), "chg", 0, 2),
     (3,  "Charges externes récurrentes", 90000, "€",       1000, dt.date(2026, 8, 5),  "chg", 0, 3),
     (4,  "Loyers & charges",             35000, "€",       1000, dt.date(2026, 8, 5),  "chg", 1, None),
     (5,  "Énergie",                       8000, "€",        500, dt.date(2026, 8, 12), "chg", 1, None),
@@ -1825,14 +1985,12 @@ def _onglet_ma_treso():
             he1.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>POSTE</div>", unsafe_allow_html=True)
             he2.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>VALEUR</div>", unsafe_allow_html=True)
             he4.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>DATE DE PAIEMENT</div>", unsafe_allow_html=True)
-            # (poste, valeur, unité, pas, date, sens) — sens: "rev" (revenu) ou "chg" (charge)
-            hyp = [
-                ("CA récurrent", 210000, "€", 1000, dt.date(2026, 8, 5), "rev"),
-                ("CA ponctuel", 15000, "€", 1000, dt.date(2026, 8, 20), "rev"),
-                ("Charges variables", 28, "% du CA", 1, dt.date(2026, 8, 10), "chg"),
-                ("Charges externes récurrentes", 90000, "€", 1000, dt.date(2026, 8, 5), "chg"),
-                ("Charges internes récurrentes", 25000, "€", 1000, dt.date(2026, 8, 28), "chg"),
-            ]
+            # DÉRIVÉ de _HYP_ROWS (source unique) : les 5 postes synchronisés, triés
+            # par leur index de synchronisation. Ne jamais redéclarer ces valeurs ici —
+            # c'est cette duplication qui avait fait diverger le taux de charges variables.
+            hyp = [(lbl, val, unit, pas, d, sens)
+                   for _rid, lbl, val, unit, pas, d, sens, _ind, sync
+                   in sorted((r for r in _HYP_ROWS if r[8] is not None), key=lambda r: r[8])]
             for i, (poste, val, unit, pas, d, sens) in enumerate(hyp):
                 barre = "#5DCAA5" if sens == "rev" else "#E0604A"
                 cp, cv, cu, cd = st.columns([2.3, 1.4, 0.7, 1.6], vertical_alignment="center")
