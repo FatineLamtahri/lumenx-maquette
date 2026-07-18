@@ -1189,6 +1189,12 @@ def _crc_detail_html(r):
     def pct(v):
         return f"{v/ca*100:.1f}".replace(".", ",") + " %"
 
+    def mont(v):
+        """Arrondit avant affichage : sans cela 240 − 191,2 sort en 48.80000000000001,
+        artefact du calcul en virgule flottante. Virgule française, pas de point."""
+        txt = f"{v:,.0f}" if abs(v - round(v)) < 0.05 else f"{v:,.1f}"
+        return txt.replace(",", " ").replace(".", ",") + " k€"
+
     def ligne(lbl, v, coul, bold=False):
         tc = "#fff" if bold else "#c3ccdd"
         vc = "#fff"
@@ -1197,7 +1203,7 @@ def _crc_detail_html(r):
             '<div style="display:flex;align-items:center;padding:7px 0;border-top:1px solid #1E2A3D;">'
             '<span style="width:3px;height:15px;background:' + coul + ';display:inline-block;margin-right:10px;"></span>'
             '<span style="flex:1;color:' + tc + ';font-size:12.5px;font-weight:' + fw + ';">' + lbl + '</span>'
-            '<span style="width:120px;text-align:right;color:#fff;font-size:12.5px;font-weight:' + fw + ';">' + str(v) + ' k€</span>'
+            '<span style="width:120px;text-align:right;color:#fff;font-size:12.5px;font-weight:' + fw + ';">' + mont(v) + '</span>'
             '<span style="width:100px;text-align:right;color:' + vc + ';font-size:12.5px;font-weight:' + fw + ';">' + pct(v) + '</span></div>'
         )
     entete = (
