@@ -1149,8 +1149,8 @@ def _crc_svg(rows, sel):
         )
     last_hist = max(i for i, r in enumerate(rows) if r["hist"])
     dvx = x0 + last_hist * step + bw // 2 + step // 2
-    div = (f'<line x1="{dvx}" y1="20" x2="{dvx}" y2="290" stroke="#5a6478" stroke-dasharray="3 4"/>'
-           f'<text x="{dvx+5}" y="32" font-size="10.5" fill="#8a90a0">aujourd&#39;hui</text>')
+    # Trait de séparation seul : le hachuré des barres suffit à marquer le projeté.
+    div = f'<line x1="{dvx}" y1="20" x2="{dvx}" y2="290" stroke="#5a6478" stroke-dasharray="3 4"/>'
     # Échelle verticale en k€ : ligne 0 (axe) + repères 100 / 200 au-dessus (encaissements)
     # et en dessous (décaissements).
     grid = ('<text x="10" y="30" font-size="9.5" fill="#8a90a0">k€</text>'
@@ -1372,6 +1372,18 @@ def _ct_reals(cat):
     return list(cat[5])
 
 
+def _purger_si_version_obsolete(prefixe):
+    """Reconstruit le stockage d'un tracker quand _STORE_VERSION a changé, et efface
+    les clés de widgets associées pour qu'elles se resèment sur les nouveaux défauts."""
+    cle_v = f"{prefixe}_store_v"
+    if st.session_state.get(cle_v) == _STORE_VERSION:
+        return
+    st.session_state[f"{prefixe}_store"] = {}
+    st.session_state[cle_v] = _STORE_VERSION
+    for k in [x for x in st.session_state if x.startswith(f"w_{prefixe}_")]:
+        del st.session_state[k]
+
+
 def _ct_store():
     """Stockage PERSISTANT des projections de charges, en dehors des clés de widgets.
 
@@ -1381,6 +1393,7 @@ def _ct_store():
     dictionnaire ordinaire de session, lui, survit à tout.
 
     Les postes exclus du prévisionnel démarrent à 0 mais restent modifiables."""
+    _purger_si_version_obsolete("ct")
     d = st.session_state.setdefault("ct_store", {})
     # On complète les catégories manquantes plutôt que de semer une seule fois :
     # une session déjà ouverte survit ainsi à l'ajout d'une catégorie.
@@ -1649,12 +1662,17 @@ _RT_CATS = [
 # les encaissements sans périodicité, et la part d'activité au-dessus du socle, qui
 # n'est pas garantie — on ne projette que ce qui rentre quoi qu'il arrive.
 _RT_ZERO_DEFAUT = {"pva", "vpo", "sub", "ref"}
+# À incrémenter dès qu'une valeur par défaut change : une session déjà ouverte
+# conserve sinon les anciennes valeurs, qu'on ne peut pas distinguer d'une saisie
+# client. Reconstruire est le seul moyen sûr de propager un nouveau défaut.
+_STORE_VERSION = 2
 
 
 def _rt_store():
     """Stockage persistant des projections de revenus (même raison que _ct_store :
     les clés de widgets ne survivent pas au changement de sous-onglet).
     Un poste ponctuel démarre à 0 : on ne projette pas un encaissement sans périodicité."""
+    _purger_si_version_obsolete("rt")
     d = st.session_state.setdefault("rt_store", {})
     for cid, _sec, _lib, profil, reals in _RT_CATS:
         if cid not in d:
