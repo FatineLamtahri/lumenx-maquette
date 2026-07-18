@@ -1835,58 +1835,62 @@ _FISC_SEED = [
 
 
 def _fisc_init():
-    """Sème le calendrier une seule fois. Les échéances réalisées sont des faits
-    (pas de widget, pas d'exclusion possible) ; les échéances à venir vivent dans
-    les clés des widgets, ce qui permet de détecter les ajustements."""
+    """Sème le calendrier une seule fois.
+
+    Les valeurs courantes ('date' et 'montant') vivent DANS la ligne, pas dans les
+    clés des widgets : Streamlit détruit ces dernières dès que le sous-onglet n'est
+    pas affiché, et les champs retombaient alors sur la date du jour et 0, ce qui
+    faisait croire que tout avait été modifié."""
     if "fisc_rows" in st.session_state:
         return
     rows = []
     for rid, d, typ, lib, mnt, realise in _FISC_SEED:
-        if not realise:
-            st.session_state.setdefault(f"fisc_date_{rid}", d)
-            st.session_state.setdefault(f"fisc_mnt_{rid}", mnt)
-        rows.append({"id": rid, "type": typ, "lib": lib, "date_calc": d,
-                     "montant_calc": mnt, "exclue": False, "creee": False,
-                     "realise": realise})
+        rows.append({"id": rid, "type": typ, "lib": lib,
+                     "date_calc": d, "montant_calc": mnt,
+                     "date": d, "montant": mnt,
+                     "exclue": False, "creee": False, "realise": realise})
     st.session_state.fisc_rows = rows
     st.session_state.fisc_seq = 0
+
+
+def _fisc_oublier_widgets(rid):
+    """Efface les clés de widgets d'une ligne pour qu'elles se resèment depuis la
+    ligne au rendu suivant (utilisé après un rétablissement ou une réactivation)."""
+    for k in (f"w_fisc_date_{rid}", f"w_fisc_mnt_{rid}"):
+        st.session_state.pop(k, None)
 
 
 def _fisc_ajouter():
     """Crée une échéance manuelle (supprimable, contrairement aux calculées)."""
     st.session_state.fisc_seq += 1
     rid = f"u{st.session_state.fisc_seq}"
-    st.session_state[f"fisc_date_{rid}"] = dt.date(2026, 12, 31)
-    st.session_state[f"fisc_mnt_{rid}"] = 0
     st.session_state.fisc_rows.append(
-        {"id": rid, "type": "Autre", "lib": "Nouvelle échéance", "date_calc": None,
-         "montant_calc": None, "exclue": False, "creee": True})
+        {"id": rid, "type": "Autre", "lib": "Nouvelle échéance",
+         "date_calc": None, "montant_calc": None,
+         "date": dt.date(2026, 12, 31), "montant": 0,
+         "exclue": False, "creee": True, "realise": False})
 
 
 def _fisc_supprimer(rid):
+    _fisc_oublier_widgets(rid)
     st.session_state.fisc_rows = [r for r in st.session_state.fisc_rows if r["id"] != rid]
 
 
 def _fisc_exclure(rid, val):
-    """Exclure ne détruit rien : on mémorise les valeurs pour pouvoir réactiver."""
+    """Exclure ne détruit rien : la ligne conserve ses valeurs et reste réactivable."""
     for r in st.session_state.fisc_rows:
-        if r["id"] != rid:
-            continue
-        if val:
-            r["date_save"] = st.session_state.get(f"fisc_date_{rid}", r["date_calc"])
-            r["montant_save"] = st.session_state.get(f"fisc_mnt_{rid}", r["montant_calc"])
-        else:
-            st.session_state[f"fisc_date_{rid}"] = r.get("date_save", r["date_calc"])
-            st.session_state[f"fisc_mnt_{rid}"] = r.get("montant_save", r["montant_calc"])
-        r["exclue"] = val
+        if r["id"] == rid:
+            r["exclue"] = val
+            _fisc_oublier_widgets(rid)
 
 
 def _fisc_reset(rid):
     """Rétablit la date et le montant calculés par l'outil."""
     for r in st.session_state.fisc_rows:
         if r["id"] == rid and not r["creee"]:
-            st.session_state[f"fisc_date_{rid}"] = r["date_calc"]
-            st.session_state[f"fisc_mnt_{rid}"] = r["montant_calc"]
+            r["date"] = r["date_calc"]
+            r["montant"] = r["montant_calc"]
+            _fisc_oublier_widgets(rid)
 
 
 def _fisc_pastille(typ):
@@ -1905,8 +1909,8 @@ def _fisc_source(r):
         return "réalisé", "#5DCAA5"
     if r["creee"]:
         return "créée par utilisateur", "#5DCAA5"
-    d_mod = st.session_state.get(f"fisc_date_{r['id']}") != r["date_calc"]
-    m_mod = st.session_state.get(f"fisc_mnt_{r['id']}") != r["montant_calc"]
+    d_mod = r["date"] != r["date_calc"]
+    m_mod = r["montant"] != r["montant_calc"]
     if d_mod and m_mod:
         return "date + montant ajustés", "#5A96FF"
     if d_mod:
@@ -1926,9 +1930,9 @@ def _crc_fiscalite_tracker():
         ".st-key-fisc_params{background:#111B2C;border:1px solid #1E2A3D;border-radius:12px;padding:12px 16px;}"
         ".st-key-fisc_cal{background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;margin-top:12px;}"
         # champs montant : pas de boutons +/-, texte à gauche
-        "[class*='st-key-fisc_mnt_'] button[data-testid='stNumberInputStepUp'],"
-        "[class*='st-key-fisc_mnt_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
-        "[class*='st-key-fisc_mnt_'] input{text-align:right !important;}"
+        "[class*='st-key-w_fisc_mnt_'] button[data-testid='stNumberInputStepUp'],"
+        "[class*='st-key-w_fisc_mnt_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
+        "[class*='st-key-w_fisc_mnt_'] input{text-align:right !important;}"
         # petits boutons d'action
         "[class*='st-key-fisc_ex_'] button,[class*='st-key-fisc_rs_'] button,"
         "[class*='st-key-fisc_del_'] button,[class*='st-key-fisc_re_'] button{"
@@ -2005,8 +2009,8 @@ def _crc_fiscalite_tracker():
                 continue
             if r["exclue"]:
                 gris = "color:#5a6478;text-decoration:line-through;font-size:12.5px;"
-                d_aff = r.get("date_save") or r["date_calc"]
-                m_aff = r.get("montant_save") or r["montant_calc"] or 0
+                d_aff = r["date"]
+                m_aff = r["montant"] or 0
                 c1.markdown(f"<div style='{gris}'>{d_aff.strftime('%d/%m/%Y')}</div>", unsafe_allow_html=True)
                 c2.markdown(f"<span style='color:#5a6478;font-size:11px;'>{r['type']}</span>", unsafe_allow_html=True)
                 c3.markdown(f"<div style='{gris}'>{r['lib']}</div>", unsafe_allow_html=True)
@@ -2020,19 +2024,26 @@ def _crc_fiscalite_tracker():
                 nb_exclu += 1
                 continue
 
+            # Clé unique pour identifier le champ, valeur resemée depuis la ligne si
+            # Streamlit l'a détruite, et retour réécrit dans la ligne.
+            dk, mk = f"w_fisc_date_{rid}", f"w_fisc_mnt_{rid}"
+            if dk not in st.session_state:
+                st.session_state[dk] = r["date"]
+            if mk not in st.session_state:
+                st.session_state[mk] = int(r["montant"])
             with c1:
-                st.date_input("date", key=f"fisc_date_{rid}", format="DD/MM/YYYY",
-                              label_visibility="collapsed")
-                if not r["creee"] and st.session_state.get(f"fisc_date_{rid}") != r["date_calc"]:
+                r["date"] = st.date_input("date", key=dk, format="DD/MM/YYYY",
+                                          label_visibility="collapsed")
+                if not r["creee"] and r["date"] != r["date_calc"]:
                     st.markdown("<div style='font-size:10px;color:#5a6478;margin-top:-6px;'>calculé : "
                                 + r["date_calc"].strftime("%d/%m/%Y") + "</div>", unsafe_allow_html=True)
             c2.markdown(_fisc_pastille(r["type"]), unsafe_allow_html=True)
             c3.markdown(f"<div style='color:#c3ccdd;font-size:12.5px;'>{r['lib']}</div>",
                         unsafe_allow_html=True)
             with c4:
-                st.number_input("montant", step=500, key=f"fisc_mnt_{rid}",
-                                label_visibility="collapsed")
-                if not r["creee"] and st.session_state.get(f"fisc_mnt_{rid}") != r["montant_calc"]:
+                r["montant"] = st.number_input("montant", step=500, key=mk,
+                                               label_visibility="collapsed")
+                if not r["creee"] and r["montant"] != r["montant_calc"]:
                     st.markdown("<div style='font-size:10px;color:#5a6478;text-align:right;margin-top:-6px;'>"
                                 "calculé : " + f"{r['montant_calc']:,.0f}".replace(",", " ") + " €</div>",
                                 unsafe_allow_html=True)
@@ -2053,7 +2064,7 @@ def _crc_fiscalite_tracker():
                     a2.button("⊘", key=f"fisc_ex_{rid}", on_click=_fisc_exclure,
                               args=(rid, True), help="Exclure de la projection (réversible)",
                               use_container_width=True)
-            total += st.session_state.get(f"fisc_mnt_{rid}", 0)
+            total += r["montant"]
 
         # Le total est rendu dans la MÊME grille que les lignes, sinon il se colle au
         # bord droit de la carte au lieu de tomber sous la colonne MONTANT.
