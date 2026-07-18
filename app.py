@@ -1381,16 +1381,17 @@ def _ct_store():
     dictionnaire ordinaire de session, lui, survit à tout.
 
     Les postes exclus du prévisionnel démarrent à 0 mais restent modifiables."""
-    if "ct_store" not in st.session_state:
-        d = {}
-        for cat in _CT_CATS:
-            cid, profil, inclus = cat[0], cat[3], cat[4]
-            if profil == "échéancier":
-                continue  # piloté par le calendrier fiscal, pas de saisie
+    d = st.session_state.setdefault("ct_store", {})
+    # On complète les catégories manquantes plutôt que de semer une seule fois :
+    # une session déjà ouverte survit ainsi à l'ajout d'une catégorie.
+    for cat in _CT_CATS:
+        cid, profil, inclus = cat[0], cat[3], cat[4]
+        if profil == "échéancier":
+            continue  # piloté par le calendrier fiscal, pas de saisie
+        if cid not in d:
             defaut = round(sum(_ct_reals(cat)) / 3.0, 1) if inclus else 0.0
             d[cid] = {"mode": "€", "g": 0.0, "p": [defaut, defaut, defaut]}
-        st.session_state.ct_store = d
-    return st.session_state.ct_store
+    return d
 
 
 def _ct_projections(cat, base):
@@ -1650,13 +1651,12 @@ def _rt_store():
     """Stockage persistant des projections de revenus (même raison que _ct_store :
     les clés de widgets ne survivent pas au changement de sous-onglet).
     Un poste ponctuel démarre à 0 : on ne projette pas un encaissement sans périodicité."""
-    if "rt_store" not in st.session_state:
-        d = {}
-        for cid, _sec, _lib, profil, reals in _RT_CATS:
+    d = st.session_state.setdefault("rt_store", {})
+    for cid, _sec, _lib, profil, reals in _RT_CATS:
+        if cid not in d:
             defaut = round(sum(reals) / 3.0, 1) if profil != "ponctuel" else 0.0
             d[cid] = {"mode": "€", "g": 0.0, "p": [defaut, defaut, defaut]}
-        st.session_state.rt_store = d
-    return st.session_state.rt_store
+    return d
 
 
 def _rt_projections(cid, profil, base):
@@ -1841,16 +1841,25 @@ def _fisc_init():
     clés des widgets : Streamlit détruit ces dernières dès que le sous-onglet n'est
     pas affiché, et les champs retombaient alors sur la date du jour et 0, ce qui
     faisait croire que tout avait été modifié."""
-    if "fisc_rows" in st.session_state:
+    rows = st.session_state.get("fisc_rows")
+    if rows is None:
+        st.session_state.fisc_rows = [
+            {"id": rid, "type": typ, "lib": lib,
+             "date_calc": d, "montant_calc": mnt,
+             "date": d, "montant": mnt,
+             "exclue": False, "creee": False, "realise": realise}
+            for rid, d, typ, lib, mnt, realise in _FISC_SEED]
+        st.session_state.fisc_seq = 0
         return
-    rows = []
-    for rid, d, typ, lib, mnt, realise in _FISC_SEED:
-        rows.append({"id": rid, "type": typ, "lib": lib,
-                     "date_calc": d, "montant_calc": mnt,
-                     "date": d, "montant": mnt,
-                     "exclue": False, "creee": False, "realise": realise})
-    st.session_state.fisc_rows = rows
-    st.session_state.fisc_seq = 0
+    # Une session ouverte avant une évolution de structure contient des lignes au
+    # format précédent : on les complète au lieu de planter sur une clé absente.
+    for r in rows:
+        r.setdefault("date", r.get("date_calc"))
+        r.setdefault("montant", r.get("montant_calc") or 0)
+        r.setdefault("realise", False)
+        r.setdefault("exclue", False)
+        r.setdefault("creee", False)
+    st.session_state.setdefault("fisc_seq", 0)
 
 
 def _fisc_oublier_widgets(rid):
