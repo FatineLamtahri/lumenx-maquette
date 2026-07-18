@@ -1344,18 +1344,20 @@ def _ct_reals(cat):
 
 
 def _ct_init():
-    """Sème l'état des projections : mode de réglage et valeurs par défaut."""
+    """Sème l'état des projections : mode de réglage et valeurs par défaut.
+    Les postes exclus du prévisionnel démarrent à 0 mais restent modifiables :
+    si le client saisit un montant, c'est le sien qui prime."""
     if st.session_state.get("ct_seed"):
         return
     for cat in _CT_CATS:
-        cid, _l1, _lib, profil, inclus = cat[0], cat[1], cat[2], cat[3], cat[4]
-        if profil == "échéancier" or not inclus:
-            continue
-        base = round(sum(_ct_reals(cat)) / 3.0, 1)
+        cid, profil, inclus = cat[0], cat[3], cat[4]
+        if profil == "échéancier":
+            continue  # piloté par le calendrier fiscal, pas de saisie
+        defaut = round(sum(_ct_reals(cat)) / 3.0, 1) if inclus else 0.0
         st.session_state.setdefault(f"ct_mode_{cid}", "€")
         st.session_state.setdefault(f"ct_g_{cid}", 0.0)
         for k in range(3):
-            st.session_state.setdefault(f"ct_p{k}_{cid}", base)
+            st.session_state.setdefault(f"ct_p{k}_{cid}", defaut)
     st.session_state.ct_seed = True
 
 
@@ -1367,16 +1369,16 @@ def _ct_projections(cat, base):
     if profil == "échéancier":
         pm = _ct_impots_mensuels()
         return [pm.get((y, m), 0.0) for y, m, _ in _CT_MOIS_PROJ]
-    if not inclus:
-        return None
+    # Un poste exclu du prévisionnel part de 0, pas de sa moyenne observée.
+    defaut = base if inclus else 0.0
     if st.session_state.get(f"ct_mode_{cid}", "€") == "%":
         g = st.session_state.get(f"ct_g_{cid}", 0.0) / 100.0
-        vals, v = [], base
+        vals, v = [], defaut
         for _ in range(3):
             v = v * (1.0 + g)
             vals.append(round(v, 1))
         return vals
-    return [round(st.session_state.get(f"ct_p{k}_{cid}", base), 1) for k in range(3)]
+    return [round(st.session_state.get(f"ct_p{k}_{cid}", defaut), 1) for k in range(3)]
 
 
 def _crc_charges_tracker():
@@ -1391,6 +1393,9 @@ def _crc_charges_tracker():
         "[class*='st-key-ct_g_'] button[data-testid='stNumberInputStepUp'],"
         "[class*='st-key-ct_g_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
         "[class*='st-key-ct_p'] input,[class*='st-key-ct_g_'] input{text-align:right !important;font-size:12px !important;}"
+        # les pastilles €/% sont centrées dans leur colonne, sinon elles ne tombent
+        # pas sous l'intitulé MODE qui est centré
+        "[class*='st-key-ct_mode_']{display:flex !important;justify-content:center !important;}"
         "</style>",
         unsafe_allow_html=True,
     )
@@ -1469,9 +1474,6 @@ def _crc_charges_tracker():
             if profil == "échéancier":
                 c[7].markdown("<div style='font-size:10px;color:#E0A04A;text-align:center;'>calendrier</div>",
                               unsafe_allow_html=True)
-            elif not inclus:
-                c[7].markdown("<div style='font-size:10px;color:#5a6478;text-align:center;'>—</div>",
-                              unsafe_allow_html=True)
             else:
                 with c[7]:
                     mode = st.pills("mode", ["€", "%"], key=f"ct_mode_{cid}",
@@ -1483,10 +1485,7 @@ def _crc_charges_tracker():
                                         label_visibility="collapsed")
             # Projections
             for k in range(3):
-                if projs is None:
-                    c[8 + k].markdown("<div style='text-align:right;color:#5a6478;font-size:11.5px;'>—</div>",
-                                      unsafe_allow_html=True)
-                elif profil == "échéancier":
+                if profil == "échéancier":
                     coul = "#E0A04A" if projs[k] else "#5a6478"
                     c[8 + k].markdown(f"<div style='text-align:right;color:{coul};font-size:11.5px;"
                                       f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
