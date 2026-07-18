@@ -1490,23 +1490,35 @@ def _crc_charges_tracker():
                     c[8 + k].markdown(f"<div style='text-align:right;color:{coul};font-size:11.5px;"
                                       f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
                 continue
-            # Widgets SANS clé : leur valeur affichée vient du stockage persistant et
-            # leur retour y est réécrit. Rien ne dépend donc de l'état volatil des widgets.
+            # Chaque champ garde une CLÉ UNIQUE (sinon Streamlit calcule un identifiant
+            # depuis les paramètres et deux champs identiques entrent en collision).
+            # La clé ne sert qu'à identifier : la vérité est dans le stockage, qui
+            # réalimente la clé quand Streamlit l'a détruite au changement d'onglet.
             s = _ct_store()[cid]
             with c[7]:
-                choix = st.pills("mode", ["€", "%"], default=s["mode"],
-                                 label_visibility="collapsed")
+                mk = f"w_ct_mode_{cid}"
+                if mk not in st.session_state:
+                    st.session_state[mk] = s["mode"]
+                choix = st.pills("mode", ["€", "%"], key=mk, label_visibility="collapsed")
                 if choix:
                     s["mode"] = choix
+                else:
+                    st.session_state[mk] = s["mode"]
                 if s["mode"] == "%":
-                    s["g"] = st.number_input("taux", value=float(s["g"]), step=0.5,
+                    gk = f"w_ct_g_{cid}"
+                    if gk not in st.session_state:
+                        st.session_state[gk] = float(s["g"])
+                    s["g"] = st.number_input("taux", step=0.5, key=gk,
                                              label_visibility="collapsed")
             for k in range(3):
                 if s["mode"] == "%":
                     c[8 + k].markdown(f"<div style='text-align:right;color:#9fc0ff;font-size:11.5px;"
                                       f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
                 else:
-                    s["p"][k] = c[8 + k].number_input("p", value=float(s["p"][k]), step=0.5,
+                    pk = f"w_ct_p{k}_{cid}"
+                    if pk not in st.session_state:
+                        st.session_state[pk] = float(s["p"][k])
+                    s["p"][k] = c[8 + k].number_input("p", step=0.5, key=pk,
                                                       label_visibility="collapsed")
 
         # Totaux
@@ -1716,22 +1728,32 @@ def _crc_revenu_tracker():
                 c[2 + k].markdown(f"<div style='{gris}'>{_ct_k(reals[k])}</div>", unsafe_allow_html=True)
             c[5].markdown(f"<div style='color:#fff;font-size:11.5px;text-align:right;font-weight:600;'>"
                           f"{_ct_k(base)}</div>", unsafe_allow_html=True)
-            # Widgets sans clé, alimentés par le stockage persistant (cf. _ct_store).
+            # Clés uniques + stockage persistant, même mécanique que le Charges Tracker.
             s = _rt_store()[cid]
             with c[6]:
-                choix = st.pills("mode", ["€", "%"], default=s["mode"],
-                                 label_visibility="collapsed")
+                mk = f"w_rt_mode_{cid}"
+                if mk not in st.session_state:
+                    st.session_state[mk] = s["mode"]
+                choix = st.pills("mode", ["€", "%"], key=mk, label_visibility="collapsed")
                 if choix:
                     s["mode"] = choix
+                else:
+                    st.session_state[mk] = s["mode"]
                 if s["mode"] == "%":
-                    s["g"] = st.number_input("taux", value=float(s["g"]), step=0.5,
+                    gk = f"w_rt_g_{cid}"
+                    if gk not in st.session_state:
+                        st.session_state[gk] = float(s["g"])
+                    s["g"] = st.number_input("taux", step=0.5, key=gk,
                                              label_visibility="collapsed")
             for k in range(3):
                 if s["mode"] == "%":
                     c[7 + k].markdown(f"<div style='text-align:right;color:#9fc0ff;font-size:11.5px;"
                                       f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
                 else:
-                    s["p"][k] = c[7 + k].number_input("p", value=float(s["p"][k]), step=0.5,
+                    pk = f"w_rt_p{k}_{cid}"
+                    if pk not in st.session_state:
+                        st.session_state[pk] = float(s["p"][k])
+                    s["p"][k] = c[7 + k].number_input("p", step=0.5, key=pk,
                                                       label_visibility="collapsed")
 
         st.markdown("<div style='border-top:1px solid #1E2A3D;margin-top:6px;'></div>",
