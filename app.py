@@ -1260,7 +1260,7 @@ def _crc_kpi_html(rows, sel):
             '<div style="display:flex;align-items:center;margin-top:9px;">'
             '<span style="width:52px;color:#8a90a0;font-size:12px;">' + lbl + '</span>'
             '<span style="height:12px;width:' + str(w) + 'px;background:#E0604A;border-radius:3px;"></span>'
-            '<span style="flex:1;text-align:right;color:#fff;font-size:12px;font-weight:700;">' + str(val) + ' k€</span></div>'
+            '<span style="flex:1;text-align:right;color:#fff;font-size:12px;font-weight:700;">' + _ct_k(val) + ' k€</span></div>'
         )
     return (
         '<div style="background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:54px;">'
@@ -1645,6 +1645,10 @@ _RT_CATS = [
     ("rfi",  "Autres revenus", "Revenus financiers", "stable", (1.1, 1.2, 1.3)),
     ("ref",  "Autres revenus", "Refacturations & remboursements", "ponctuel", (1.9, 4.2, 2.3)),
 ]
+# Lignes dont la projection démarre à 0, le client restant libre de la remplir :
+# les encaissements sans périodicité, et la part d'activité au-dessus du socle, qui
+# n'est pas garantie — on ne projette que ce qui rentre quoi qu'il arrive.
+_RT_ZERO_DEFAUT = {"pva", "vpo", "sub", "ref"}
 
 
 def _rt_store():
@@ -1654,7 +1658,7 @@ def _rt_store():
     d = st.session_state.setdefault("rt_store", {})
     for cid, _sec, _lib, profil, reals in _RT_CATS:
         if cid not in d:
-            defaut = round(sum(reals) / 3.0, 1) if profil != "ponctuel" else 0.0
+            defaut = 0.0 if cid in _RT_ZERO_DEFAUT else round(sum(reals) / 3.0, 1)
             d[cid] = {"mode": "€", "g": 0.0, "p": [defaut, defaut, defaut]}
     return d
 
@@ -1665,7 +1669,7 @@ def _rt_projections(cid, profil, base):
     s = _rt_store()[cid]
     if s["mode"] == "%":
         g = s["g"] / 100.0
-        vals, v = [], (base if profil != "ponctuel" else 0.0)
+        vals, v = [], (0.0 if cid in _RT_ZERO_DEFAUT else base)
         for _ in range(3):
             v = v * (1.0 + g)
             vals.append(round(v, 1))
@@ -2209,22 +2213,38 @@ def _onglet_ma_treso():
         # Résumé LECTURE SEULE des moteurs, dérivé des trackers. Plus aucune saisie
         # ici : un chiffre ne se règle qu'à l'endroit où il est le plus précis.
         m = _hyp_moteurs()
-        postes = [("CA récurrent", "rec", "#5DCAA5"), ("CA ponctuel", "pon", "#5DCAA5"),
-                  ("Charges fixes", "fix", "#E0604A"), ("Charges variables", "var", "#E0604A"),
-                  ("Charges ponctuelles", "ponc", "#E0604A")]
-        lignes_h = ""
-        for lib, cle, barre in postes:
+        def _lg(lib, cle, barre):
             r, p = m[cle]
-            lignes_h += (
-                "<div style='display:flex;align-items:center;padding:9px 0;"
-                "border-top:1px solid #1E2A3D;'>"
-                "<span style='width:3px;height:15px;background:" + barre + ";display:inline-block;"
-                "margin-right:10px;'></span>"
-                "<span style='flex:1;color:#c3ccdd;font-size:13px;'>" + lib + "</span>"
-                "<span style='width:90px;text-align:right;color:#8a90a0;font-size:12.5px;'>"
-                + _ct_k(r) + "</span>"
-                "<span style='width:90px;text-align:right;color:#fff;font-size:12.5px;"
-                "font-weight:600;'>" + _ct_k(p) + "</span></div>")
+            return ("<div style='display:flex;align-items:center;padding:9px 0;"
+                    "border-top:1px solid #1E2A3D;'>"
+                    "<span style='width:3px;height:15px;background:" + barre + ";display:inline-block;"
+                    "margin-right:10px;'></span>"
+                    "<span style='flex:1;color:#c3ccdd;font-size:13px;'>" + lib + "</span>"
+                    "<span style='width:90px;text-align:right;color:#8a90a0;font-size:12.5px;'>"
+                    + _ct_k(r) + "</span>"
+                    "<span style='width:90px;text-align:right;color:#fff;font-size:12.5px;"
+                    "font-weight:600;'>" + _ct_k(p) + "</span></div>")
+
+        def _st(lib, cles, coul):
+            """Sous-total : même gabarit, sans barre de couleur (cf. panneau Détail)."""
+            r = sum(m[c][0] for c in cles)
+            p = sum(m[c][1] for c in cles)
+            return ("<div style='display:flex;align-items:center;padding:9px 0;"
+                    "border-top:1px solid #1E2A3D;'>"
+                    "<span style='width:3px;height:15px;display:inline-block;margin-right:10px;'></span>"
+                    "<span style='flex:1;color:" + coul + ";font-size:12.5px;font-weight:600;'>" + lib + "</span>"
+                    "<span style='width:90px;text-align:right;color:" + coul
+                    + ";font-size:12.5px;font-weight:600;'>" + _ct_k(r) + "</span>"
+                    "<span style='width:90px;text-align:right;color:" + coul
+                    + ";font-size:12.5px;font-weight:600;'>" + _ct_k(p) + "</span></div>")
+
+        lignes_h = (_lg("CA récurrent", "rec", "#5DCAA5")
+                    + _lg("CA ponctuel", "pon", "#5DCAA5")
+                    + _st("Total encaissements", ("rec", "pon"), "#5DCAA5")
+                    + _lg("Charges fixes", "fix", "#E0604A")
+                    + _lg("Charges variables", "var", "#E0604A")
+                    + _lg("Charges ponctuelles", "ponc", "#E0604A")
+                    + _st("Total décaissements", ("fix", "var", "ponc"), "#E0604A"))
         sr, sp = m["solde"]
         st.markdown(
             "<div style='background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
@@ -2362,7 +2382,7 @@ def _hyp_ajustements():
     nb_rev = 0
     for cid, _s, _l, profil, reals in _RT_CATS:
         base = round(sum(reals) / 3.0, 1)
-        defaut = base if profil != "ponctuel" else 0.0
+        defaut = 0.0 if cid in _RT_ZERO_DEFAUT else base
         if _rt_projections(cid, profil, base) != [defaut] * 3:
             nb_rev += 1
     nb_chg = 0
@@ -2381,6 +2401,22 @@ def _hyp_confirmer():
     st.session_state.hyp_verifie = dt.date.today().strftime("%d/%m/%Y")
 
 
+# Cible de navigation de chaque source : (onglet principal, sous-onglet)
+_HYP_CIBLES = {
+    "Revenu Tracker": ("Compte de résultat cash", "Revenu Tracker"),
+    "Charges Tracker": ("Compte de résultat cash", "Charges Tracker"),
+    "Calendrier fiscal": ("Compte de résultat cash", "Fiscalité Tracker"),
+}
+
+
+def _hyp_aller_a(src):
+    """Renvoie sur l'onglet qui produit ce moteur. Possible seulement parce que la
+    navigation est en pilules : st.tabs ne se pilote pas depuis le code."""
+    onglet, sous = _HYP_CIBLES[src]
+    st.session_state.dash_tab_sel = onglet
+    st.session_state.crc_sub = sous
+
+
 def _onglet_hypotheses():
     """Onglet 'Hypothèses' : synthèse en LECTURE SEULE des moteurs du modèle.
     Un chiffre ne se saisit qu'à l'endroit où il est le plus précis — donc dans les
@@ -2393,8 +2429,15 @@ def _onglet_hypotheses():
     st.markdown(
         "<style>"
         ".st-key-hyp_card{background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;margin-top:12px;}"
+        # lignes aérées : le rendu par défaut est trop compact
+        ".st-key-hyp_card [data-testid='stHorizontalBlock']{margin:5px 0 !important;}"
         ".st-key-hyp_ok button{background:rgba(93,202,165,0.14) !important;"
         "border:1px solid #5DCAA5 !important;color:#8fe0c4 !important;font-size:12px !important;}"
+        # boutons de source : discrets, alignés à droite, allure de lien
+        "[class*='st-key-hyp_src_'] button{background:transparent !important;border:none !important;"
+        "color:#5A96FF !important;font-size:11px !important;padding:0 !important;"
+        "min-height:0 !important;justify-content:flex-end !important;}"
+        "[class*='st-key-hyp_src_'] button:hover{color:#9fc0ff !important;}"
         "</style>",
         unsafe_allow_html=True,
     )
@@ -2453,6 +2496,7 @@ def _onglet_hypotheses():
              "rec", "Revenu Tracker", False, "#5DCAA5"),
             ("CA ponctuel", "Moyenne mensuelle des encaissements sans périodicité",
              "pon", "Revenu Tracker", False, "#fff"),
+            ("Total encaissements", "", ("rec", "pon"), "", False, "#5DCAA5"),
             ("DÉCAISSEMENTS", None, None, None, False, None),
             ("Charges fixes", "Moyenne mensuelle des postes stables et échéanciers",
              "fix", "Charges Tracker", False, "#fff"),
@@ -2462,12 +2506,25 @@ def _onglet_hypotheses():
              "var", "Charges Tracker", False, "#fff"),
             ("Charges ponctuelles", "Moyenne mensuelle des décaissements sans périodicité",
              "ponc", "Charges Tracker", False, "#E0A04A"),
+            ("Total décaissements", "", ("fix", "var", "ponc"), "", False, "#E0604A"),
         ]
         for lib, meth, cle, src, retrait, coul in lignes:
             if meth is None:
                 st.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;"
                             "color:#c3ccdd;margin:10px 0 2px;'>" + lib + "</div>",
                             unsafe_allow_html=True)
+                continue
+            # Un tuple de clés = sous-total : on somme les moteurs concernés.
+            if isinstance(cle, tuple):
+                r = sum(m[c][0] for c in cle)
+                p = sum(m[c][1] for c in cle)
+                c = st.columns(rat, vertical_alignment="center")
+                c[0].markdown(f"<div style='color:{coul};font-size:12px;font-weight:600;'>{lib}</div>",
+                              unsafe_allow_html=True)
+                c[2].markdown(f"<div style='color:{coul};font-size:11.5px;text-align:right;"
+                              f"font-weight:600;'>{_ct_k(r)}</div>", unsafe_allow_html=True)
+                c[3].markdown(f"<div style='color:{coul};font-size:11.5px;text-align:right;"
+                              f"font-weight:600;'>{_ct_k(p)}</div>", unsafe_allow_html=True)
                 continue
             r, p = m[cle]
             c = st.columns(rat, vertical_alignment="center")
@@ -2481,8 +2538,8 @@ def _onglet_hypotheses():
                           f"{_ct_k(r)}</div>", unsafe_allow_html=True)
             c[3].markdown(f"<div style='color:{coul};font-size:11.5px;text-align:right;"
                           f"font-weight:700;'>{_ct_k(p)}</div>", unsafe_allow_html=True)
-            c[4].markdown(f"<div style='color:#5A96FF;font-size:11px;text-align:right;'>{src} →</div>",
-                          unsafe_allow_html=True)
+            c[4].button(f"{src} →", key=f"hyp_src_{cle}", on_click=_hyp_aller_a,
+                        args=(src,), use_container_width=True)
 
         st.markdown("<div style='border-top:1px solid #1E2A3D;margin-top:8px;'></div>",
                     unsafe_allow_html=True)
@@ -2530,12 +2587,37 @@ def ecran_dashboard():
         "</style>",
         unsafe_allow_html=True,
     )
-    top = st.tabs(["Ma tréso", "Hypothèses", "Compte de résultat cash", "Smart tréso", "Smart allocation"])
-    with top[0]:
+    # Navigation principale en pilules et non en st.tabs : st.tabs ne se pilote pas
+    # depuis le code, or les liens « source » de l'écran Hypothèses doivent pouvoir
+    # renvoyer sur le bon onglet. Le CSS ci-dessous leur redonne l'allure d'onglets.
+    st.markdown(
+        "<style>"
+        ".st-key-dash_tab [data-baseweb='button-group'] button{"
+        "background:#0d1526 !important;border:1px solid #1a2336 !important;"
+        "border-radius:10px 10px 0 0 !important;padding:9px 24px !important;"
+        "font-size:15px !important;color:#aab3c7 !important;}"
+        ".st-key-dash_tab [data-baseweb='button-group'] button:hover{"
+        "background:#13203a !important;color:#fff !important;}"
+        ".st-key-dash_tab [data-baseweb='button-group'] button[aria-pressed='true'],"
+        ".st-key-dash_tab [data-baseweb='button-group'] button[kind='pillsActive']{"
+        "background:#15294d !important;color:#fff !important;font-weight:600 !important;"
+        "border-bottom:3px solid #2D6BFF !important;}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
+    onglets = ["Ma tréso", "Hypothèses", "Compte de résultat cash",
+               "Smart tréso", "Smart allocation"]
+    with st.container(key="dash_tab"):
+        actif = st.pills("Onglets du tableau de bord", onglets, default="Ma tréso",
+                         label_visibility="collapsed", key="dash_tab_sel")
+    if not actif:
+        actif = "Ma tréso"
+
+    if actif == "Ma tréso":
         _onglet_ma_treso()
-    with top[1]:
+    elif actif == "Hypothèses":
         _onglet_hypotheses()
-    with top[2]:
+    elif actif == "Compte de résultat cash":
         sub = st.pills(
             "Sous-onglets du compte de résultat cash",
             ["Vue d'ensemble", "Charges Tracker", "Fiscalité Tracker", "Revenu Tracker"],
@@ -2549,12 +2631,12 @@ def ecran_dashboard():
             _crc_revenu_tracker()
         else:  # Vue d'ensemble
             _report_flux()
-    with top[3]:
+    elif actif == "Smart tréso":
         _placeholder_onglet(
             "Smart Tréso",
             "Allocation de la trésorerie en poches (fonctionnement, précaution, "
             "investissement, legacy). À venir.")
-    with top[4]:
+    else:
         _report_placements()
 
 
