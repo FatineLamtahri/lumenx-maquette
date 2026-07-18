@@ -1101,8 +1101,10 @@ _CRC_MOIS = [
     ("Jan", True, 182, 18, 4), ("Fév", True, 190, 20, 6), ("Mar", True, 176, 15, 3),
     ("Avr", True, 205, 25, 5), ("Mai", True, 198, 22, 4), ("Jun", True, 210, 30, 5),
     ("Jul", True, 208, 27, 6), ("Aoû", False, 212, 33, 5), ("Sep", False, 214, 36, 5),
-    ("Oct", False, 218, 37, 6), ("Nov", False, 220, 40, 5), ("Déc", False, 226, 44, 6),
+    ("Oct", False, 218, 37, 6),
 ]
+# La projection s'arrête à M+3, comme le Charges Tracker, le Revenu Tracker et le
+# calendrier fiscal : une seule fenêtre projetée dans toute l'application.
 
 
 def _crc_calc(m):
@@ -1393,9 +1395,6 @@ def _crc_charges_tracker():
         "[class*='st-key-ct_g_'] button[data-testid='stNumberInputStepUp'],"
         "[class*='st-key-ct_g_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
         "[class*='st-key-ct_p'] input,[class*='st-key-ct_g_'] input{text-align:right !important;font-size:12px !important;}"
-        # les pastilles €/% sont centrées dans leur colonne, sinon elles ne tombent
-        # pas sous l'intitulé MODE qui est centré
-        "[class*='st-key-ct_mode_']{display:flex !important;justify-content:center !important;}"
         "</style>",
         unsafe_allow_html=True,
     )
@@ -1441,14 +1440,16 @@ def _crc_charges_tracker():
         for i, (_y, _m, nom) in enumerate(_CT_MOIS_REAL):
             h[3 + i].markdown(f"<div style='{ent}text-align:right;'>{nom.upper()}</div>", unsafe_allow_html=True)
         h[6].markdown(f"<div style='{ent}text-align:right;'>BASE</div>", unsafe_allow_html=True)
-        h[7].markdown(f"<div style='{ent}text-align:center;'>MODE</div>", unsafe_allow_html=True)
+        # aligné à gauche comme les pastilles €/% qui se placent en début de colonne
+        h[7].markdown(f"<div style='{ent}'>MODE</div>", unsafe_allow_html=True)
         for i, (_y, _m, nom) in enumerate(_CT_MOIS_PROJ):
             h[8 + i].markdown(f"<div style='{ent}text-align:center;'>{nom.upper()}</div>", unsafe_allow_html=True)
         st.markdown("<div style='border-top:1px solid #1E2A3D;'></div>", unsafe_allow_html=True)
 
         niveau = None
         for cat in _CT_CATS:
-            cid, l1, lib, profil, inclus, _r, justif = cat
+            # justif : conservé dans le modèle, destiné au futur détail au clic (ⓘ)
+            cid, l1, lib, profil, inclus, _r, _justif = cat
             if l1 != niveau:
                 niveau = l1
                 st.markdown("<div style='font-size:11.5px;font-weight:700;letter-spacing:0.5px;"
@@ -1495,8 +1496,6 @@ def _crc_charges_tracker():
                 else:
                     c[8 + k].number_input("p", step=0.5, key=f"ct_p{k}_{cid}",
                                           label_visibility="collapsed")
-            st.markdown(f"<div style='font-size:9.5px;color:#5a6478;margin:-6px 0 4px;'>{justif}</div>",
-                        unsafe_allow_html=True)
 
         # Totaux
         st.markdown("<div style='border-top:1px solid #1E2A3D;margin-top:6px;'></div>",
