@@ -2058,45 +2058,6 @@ def _placeholder_onglet(titre, desc=""):
     )
 
 
-# Modèle détaillé des hypothèses (onglet 'Hypothèses').
-# (rowid, libellé, valeur, unité, pas, date, sens, indent, sync)
-#  sens : "rev" (revenu) / "chg" (charge)  ·  indent : 0 principal, 1 sous-poste
-#  sync : index (0..4) du poste jumeau dans 'Principales hypothèses' de Ma tréso, sinon None
-_HYP_ROWS = [
-    (0,  "CA récurrent",                210000, "€",       1000, dt.date(2026, 8, 5),  "rev", 0, 0),
-    (1,  "CA ponctuel",                  15000, "€",       1000, dt.date(2026, 8, 20), "rev", 0, 1),
-    (2,  "Charges variables",             13.5, "% du CA",  0.5, dt.date(2026, 8, 10), "chg", 0, 2),
-    (3,  "Charges externes récurrentes", 90000, "€",       1000, dt.date(2026, 8, 5),  "chg", 0, 3),
-    (4,  "Loyers & charges",             35000, "€",       1000, dt.date(2026, 8, 5),  "chg", 1, None),
-    (5,  "Énergie",                       8000, "€",        500, dt.date(2026, 8, 12), "chg", 1, None),
-    (6,  "Assurances",                    7000, "€",        500, dt.date(2026, 8, 15), "chg", 1, None),
-    (7,  "Honoraires",                   25000, "€",       1000, dt.date(2026, 8, 20), "chg", 1, None),
-    (8,  "Abonnements",                  15000, "€",        500, dt.date(2026, 8, 1),  "chg", 1, None),
-    (9,  "Charges fixes aléatoires",      5000, "€",        500, dt.date(2026, 8, 18), "chg", 0, None),
-    (10, "Charges internes récurrentes", 25000, "€",       1000, dt.date(2026, 8, 28), "chg", 0, 4),
-    (11, "Charges financières",           4000, "€",        500, dt.date(2026, 8, 25), "chg", 0, None),
-]
-# Correspondance index Ma tréso (0..4) -> rowid dans l'onglet Hypothèses
-_SYNC_MATRESO_TO_H2 = {0: 0, 1: 1, 2: 2, 3: 3, 4: 10}
-
-
-def _mirror_state(src, dst):
-    """Recopie la valeur d'un champ dans son jumeau (synchro tréso <-> hypothèses)."""
-    st.session_state[dst] = st.session_state[src]
-
-
-def _seed_hyp_state():
-    """Initialise l'état des champs d'hypothèses (une seule fois) pour les deux onglets.
-    Indispensable : on ne passe plus 'value=' aux widgets synchronisés, l'état pré-semé
-    sert de valeur initiale ET évite les avertissements Streamlit à l'écran."""
-    for rid, lbl, val, unit, pas, d, sens, indent, sync in _HYP_ROWS:
-        st.session_state.setdefault(f"h2_val_{rid}", val)
-        st.session_state.setdefault(f"h2_date_{rid}", d)
-        if sync is not None:
-            st.session_state.setdefault(f"hyp_val_{sync}", val)
-            st.session_state.setdefault(f"hyp_date_{sync}", d)
-
-
 def _onglet_ma_treso():
     """Onglet 'Ma tréso' : courbe d'évolution, comptes connectés, période d'analyse,
     derniers mouvements (banque + n° de compte), et hypothèses éditables."""
@@ -2108,12 +2069,6 @@ def _onglet_ma_treso():
         # Gap auto de Streamlit neutralisé (=0) : l'écart entre les cartes est fixé
         # par le margin-top de CHAQUE carte (voir plus bas), pas ici.
         ".st-key-mt_grid [data-testid='stColumn'] > [data-testid='stVerticalBlock']{gap:0 !important;}"
-        ".st-key-mt_hyp{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;margin-top:20px;height:500px !important;box-sizing:border-box;}"
-        ".st-key-mt_hyp > [data-testid='stVerticalBlock']{gap:0.5rem !important;}"
-        # bouton Recalculer : discret (translucide, petit), comme 'Gérer les comptes'
-        ".st-key-mt_hyp .stButton button{background:rgba(45,107,255,0.12) !important;"
-        "border:1px solid rgba(45,107,255,0.55) !important;color:#5A96FF !important;font-weight:600 !important;"
-        "padding:5px 10px !important;font-size:13px !important;}"
         ".st-key-mt_comptes{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;height:172px !important;box-sizing:border-box;}"
         ".st-key-mt_comptes .stButton button{background:rgba(45,107,255,0.14) !important;"
         "border:1px solid #2D6BFF !important;color:#5A96FF !important;}"
@@ -2146,50 +2101,48 @@ def _onglet_ma_treso():
             """,
             unsafe_allow_html=True,
         )
-        with st.container(key="mt_hyp"):
-            st.markdown(
-                "<style>"
-                "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepUp'],"
-                "[class*='st-key-hyp_val_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
-                "[class*='st-key-hyp_val_'] input{text-align:left !important;}"
-                "</style>",
-                unsafe_allow_html=True,
-            )
-            hh1, hh2 = st.columns([2.6, 1], vertical_alignment="center")
-            hh1.markdown(
-                "<div style='font-size:16px;font-weight:600;color:#e8ecf4;'>Principales hypothèses</div>"
-                "<div style='font-size:12px;color:#8a90a0;'>Valeurs par défaut — modifiez la valeur et la date de paiement.</div>",
-                unsafe_allow_html=True,
-            )
-            hh2.button("Recalculer la projection", type="primary",
-                       key="matreso_recalc", use_container_width=True)
-            # En-têtes de colonnes (mêmes ratios que les lignes)
-            he1, he2, _he3, he4 = st.columns([2.3, 1.4, 0.7, 1.6])
-            he1.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>POSTE</div>", unsafe_allow_html=True)
-            he2.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>VALEUR</div>", unsafe_allow_html=True)
-            he4.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>DATE DE PAIEMENT</div>", unsafe_allow_html=True)
-            # DÉRIVÉ de _HYP_ROWS (source unique) : les 5 postes synchronisés, triés
-            # par leur index de synchronisation. Ne jamais redéclarer ces valeurs ici —
-            # c'est cette duplication qui avait fait diverger le taux de charges variables.
-            hyp = [(lbl, val, unit, pas, d, sens)
-                   for _rid, lbl, val, unit, pas, d, sens, _ind, sync
-                   in sorted((r for r in _HYP_ROWS if r[8] is not None), key=lambda r: r[8])]
-            for i, (poste, val, unit, pas, d, sens) in enumerate(hyp):
-                barre = "#5DCAA5" if sens == "rev" else "#E0604A"
-                cp, cv, cu, cd = st.columns([2.3, 1.4, 0.7, 1.6], vertical_alignment="center")
-                cp.markdown(
-                    f"<div style='color:#fff;font-size:13.5px;border-left:3px solid {barre};"
-                    f"padding-left:10px;'>{poste}</div>",
-                    unsafe_allow_html=True)
-                cv.number_input(poste, step=pas, key=f"hyp_val_{i}",
-                                on_change=_mirror_state,
-                                args=(f"hyp_val_{i}", f"h2_val_{_SYNC_MATRESO_TO_H2[i]}"),
-                                label_visibility="collapsed")
-                cu.markdown(f"<div style='color:#c3ccdd;font-size:13px;'>{unit}</div>", unsafe_allow_html=True)
-                cd.date_input(f"{poste} — date", key=f"hyp_date_{i}",
-                              format="DD/MM/YYYY", on_change=_mirror_state,
-                              args=(f"hyp_date_{i}", f"h2_date_{_SYNC_MATRESO_TO_H2[i]}"),
-                              label_visibility="collapsed")
+        # Résumé LECTURE SEULE des moteurs, dérivé des trackers. Plus aucune saisie
+        # ici : un chiffre ne se règle qu'à l'endroit où il est le plus précis.
+        m = _hyp_moteurs()
+        postes = [("CA récurrent", "rec", "#5DCAA5"), ("CA ponctuel", "pon", "#5DCAA5"),
+                  ("Charges fixes", "fix", "#E0604A"), ("Charges variables", "var", "#E0604A"),
+                  ("Charges ponctuelles", "ponc", "#E0604A")]
+        lignes_h = ""
+        for lib, cle, barre in postes:
+            r, p = m[cle]
+            lignes_h += (
+                "<div style='display:flex;align-items:center;padding:9px 0;"
+                "border-top:1px solid #1E2A3D;'>"
+                "<span style='width:3px;height:15px;background:" + barre + ";display:inline-block;"
+                "margin-right:10px;'></span>"
+                "<span style='flex:1;color:#c3ccdd;font-size:13px;'>" + lib + "</span>"
+                "<span style='width:90px;text-align:right;color:#8a90a0;font-size:12.5px;'>"
+                + _ct_k(r) + "</span>"
+                "<span style='width:90px;text-align:right;color:#fff;font-size:12.5px;"
+                "font-weight:600;'>" + _ct_k(p) + "</span></div>")
+        sr, sp = m["solde"]
+        st.markdown(
+            "<div style='background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
+            "padding:16px 18px;margin-top:20px;'>"
+            "<div style='font-size:16px;font-weight:600;color:#e8ecf4;'>Principales hypothèses</div>"
+            "<div style='font-size:12px;color:#8a90a0;margin-bottom:6px;'>Moyennes mensuelles en k€ — "
+            "calculées depuis les trackers, modifiables à leur source</div>"
+            "<div style='display:flex;padding-bottom:4px;'>"
+            "<span style='flex:1;'></span>"
+            "<span style='width:90px;text-align:right;font-size:9.5px;font-weight:700;"
+            "letter-spacing:0.5px;color:#5a6478;'>RÉALISÉ</span>"
+            "<span style='width:90px;text-align:right;font-size:9.5px;font-weight:700;"
+            "letter-spacing:0.5px;color:#5a6478;'>PROJETÉ</span></div>"
+            + lignes_h +
+            "<div style='display:flex;align-items:center;padding:10px 0 0;"
+            "border-top:1px solid #1E2A3D;margin-top:4px;'>"
+            "<span style='flex:1;color:#fff;font-size:13px;font-weight:700;'>Solde net moyen</span>"
+            "<span style='width:90px;text-align:right;color:#8a90a0;font-size:12.5px;"
+            "font-weight:700;'>+ " + _ct_k(sr) + "</span>"
+            "<span style='width:90px;text-align:right;color:#5DCAA5;font-size:13px;"
+            "font-weight:800;'>+ " + _ct_k(sp) + "</span></div></div>",
+            unsafe_allow_html=True,
+        )
 
     with col_d:
         with st.container(key="mt_comptes"):
@@ -2248,64 +2201,197 @@ def _onglet_ma_treso():
         )
 
 
+def _hyp_moteurs():
+    """Agrège les moteurs du modèle DEPUIS les trackers. Rien n'est saisi ici :
+    tout est dérivé, ce qui rend la double saisie impossible par construction.
+    Retourne des moyennes mensuelles (réalisé M-2→M0, projeté M+1→M+3)."""
+    _rt_init()
+    _ct_init()
+
+    def moy(v):
+        return sum(v) / 3.0
+
+    rec_r = rec_p = pon_r = pon_p = 0.0
+    for cid, _s, _l, profil, reals in _RT_CATS:
+        base = round(sum(reals) / 3.0, 1)
+        projs = _rt_projections(cid, profil, base)
+        if _RT_PROFILS[profil][1]:
+            rec_r += moy(reals)
+            rec_p += moy(projs)
+        else:
+            pon_r += moy(reals)
+            pon_p += moy(projs)
+
+    fix_r = fix_p = var_r = var_p = ponc_r = ponc_p = 0.0
+    for cat in _CT_CATS:
+        reals = _ct_reals(cat)
+        base = round(sum(reals) / 3.0, 1)
+        projs = _ct_projections(cat, base)
+        if _CT_PROFILS[cat[3]][1]:
+            fix_r += moy(reals)
+            fix_p += moy(projs)
+        elif cat[3] == "variable":
+            var_r += moy(reals)
+            var_p += moy(projs)
+        else:
+            ponc_r += moy(reals)
+            ponc_p += moy(projs)
+
+    pm = _ct_impots_mensuels()
+    fisc_r = sum(pm.get((y, m), 0.0) for y, m, _ in _CT_MOIS_REAL) / 3.0
+    fisc_p = sum(pm.get((y, m), 0.0) for y, m, _ in _CT_MOIS_PROJ) / 3.0
+    return {
+        "rec": (rec_r, rec_p), "pon": (pon_r, pon_p),
+        "fix": (fix_r, fix_p), "fisc": (fisc_r, fisc_p),
+        "var": (var_r, var_p), "ponc": (ponc_r, ponc_p),
+        "solde": (rec_r + pon_r - fix_r - var_r - ponc_r,
+                  rec_p + pon_p - fix_p - var_p - ponc_p),
+    }
+
+
+def _hyp_ajustements():
+    """Compte les lignes dont la projection s'écarte de sa valeur par défaut.
+    Sert à dire au client si sa projection reproduit l'historique ou non."""
+    _rt_init()
+    _ct_init()
+    nb_rev = 0
+    for cid, _s, _l, profil, reals in _RT_CATS:
+        base = round(sum(reals) / 3.0, 1)
+        defaut = base if profil != "ponctuel" else 0.0
+        if _rt_projections(cid, profil, base) != [defaut] * 3:
+            nb_rev += 1
+    nb_chg = 0
+    for cat in _CT_CATS:
+        if cat[3] == "échéancier":
+            continue  # piloté par le calendrier, pas ajustable ici
+        reals = _ct_reals(cat)
+        base = round(sum(reals) / 3.0, 1)
+        defaut = base if cat[4] else 0.0
+        if _ct_projections(cat, base) != [defaut] * 3:
+            nb_chg += 1
+    return nb_rev, nb_chg
+
+
+def _hyp_confirmer():
+    st.session_state.hyp_verifie = dt.date.today().strftime("%d/%m/%Y")
+
+
 def _onglet_hypotheses():
-    """Onglet 'Hypothèses' : version détaillée des hypothèses de projection.
-    Même format que 'Principales hypothèses'. Les 5 postes marqués ⇄ sont synchronisés
-    avec Ma tréso (modif. répercutée des deux côtés via _mirror_state)."""
+    """Onglet 'Hypothèses' : synthèse en LECTURE SEULE des moteurs du modèle.
+    Un chiffre ne se saisit qu'à l'endroit où il est le plus précis — donc dans les
+    trackers. Ici on montre ce que le modèle utilise, comment c'est calculé et d'où
+    ça vient."""
+    m = _hyp_moteurs()
+    nb_rev, nb_chg = _hyp_ajustements()
+    verifie = st.session_state.get("hyp_verifie")
+
     st.markdown(
         "<style>"
-        ".st-key-hyp2_card{background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 20px;}"
-        ".st-key-hyp2_card [data-testid='stVerticalBlock']{gap:0.45rem !important;}"
-        # champs valeur : on masque les boutons +/- et on aligne le texte à gauche
-        "[class*='st-key-h2_val_'] button[data-testid='stNumberInputStepUp'],"
-        "[class*='st-key-h2_val_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
-        "[class*='st-key-h2_val_'] input{text-align:left !important;}"
-        # bouton Recalculer : même style discret que Ma tréso
-        ".st-key-hyp2_recalc button{background:rgba(45,107,255,0.12) !important;"
-        "border:1px solid rgba(45,107,255,0.55) !important;color:#5A96FF !important;font-weight:600 !important;"
-        "padding:5px 10px !important;font-size:13px !important;}"
+        ".st-key-hyp_card{background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;margin-top:12px;}"
+        ".st-key-hyp_ok button{background:rgba(93,202,165,0.14) !important;"
+        "border:1px solid #5DCAA5 !important;color:#8fe0c4 !important;font-size:12px !important;}"
         "</style>",
         unsafe_allow_html=True,
     )
-    with st.container(key="hyp2_card"):
-        hh1, hh2 = st.columns([3, 1], vertical_alignment="center")
-        hh1.markdown(
-            "<div style='font-size:16px;font-weight:600;color:#e8ecf4;'>Hypothèses</div>"
-            "<div style='font-size:12px;color:#8a90a0;'>Valeurs et dates de projection. "
-            "Les postes ⇄ sont partagés avec « Ma tréso ».</div>",
-            unsafe_allow_html=True,
-        )
-        hh2.button("Recalculer la projection", type="primary",
-                   key="hyp2_recalc", use_container_width=True)
-        he1, he2, _he3, he4 = st.columns([2.6, 1.4, 0.7, 1.6])
-        he1.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>POSTE</div>", unsafe_allow_html=True)
-        he2.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>VALEUR</div>", unsafe_allow_html=True)
-        he4.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:#7C8AA5;'>DATE DE PAIEMENT</div>", unsafe_allow_html=True)
-        for rid, lbl, val, unit, pas, d, sens, indent, sync in _HYP_ROWS:
-            barre = "#5DCAA5" if sens == "rev" else "#E0604A"
-            marge = indent * 30
-            badge = " <span style='color:#2D6BFF;font-size:12px;'>⇄</span>" if sync is not None else ""
-            couleur = "#fff" if indent == 0 else "#c3ccdd"
-            cp, cv, cu, cd = st.columns([2.6, 1.4, 0.7, 1.6], vertical_alignment="center")
-            cp.markdown(
-                f"<div style='color:{couleur};font-size:13.5px;border-left:3px solid {barre};"
-                f"margin-left:{marge}px;padding-left:10px;'>{lbl}{badge}</div>",
-                unsafe_allow_html=True)
-            if sync is not None:
-                cv.number_input(lbl, step=pas, key=f"h2_val_{rid}",
-                                on_change=_mirror_state,
-                                args=(f"h2_val_{rid}", f"hyp_val_{sync}"),
-                                label_visibility="collapsed")
-                cd.date_input(f"{lbl} — date", key=f"h2_date_{rid}",
-                              format="DD/MM/YYYY", on_change=_mirror_state,
-                              args=(f"h2_date_{rid}", f"hyp_date_{sync}"),
-                              label_visibility="collapsed")
-            else:
-                cv.number_input(lbl, step=pas, key=f"h2_val_{rid}",
-                                label_visibility="collapsed")
-                cd.date_input(f"{lbl} — date", key=f"h2_date_{rid}",
-                              format="DD/MM/YYYY", label_visibility="collapsed")
-            cu.markdown(f"<div style='color:#c3ccdd;font-size:13px;'>{unit}</div>", unsafe_allow_html=True)
+    st.markdown(
+        '<div style="background:rgba(45,107,255,0.08);border-radius:8px;padding:9px 14px;'
+        'font-size:12px;color:#9fc0ff;">M0 = juillet 2026, dernier mois clôturé · toutes les valeurs '
+        'sont des moyennes mensuelles en k€ · pour corriger un chiffre, allez à sa source</div>',
+        unsafe_allow_html=True)
+
+    # ---- État des ajustements (recalculé, jamais figé) ----
+    def bloc(titre, nb):
+        if nb:
+            return ("<span style='color:#5DCAA5;'>●</span> <span style='color:#c3ccdd;'>" + titre
+                    + " — <b style='color:#5DCAA5;'>" + str(nb) + " modification"
+                    + ("s" if nb > 1 else "") + "</b></span>")
+        return ("<span style='color:#E0A04A;'>▲</span> <span style='color:#c3ccdd;'>" + titre
+                + " — <b style='color:#E0A04A;'>aucune modification, la projection "
+                  "reproduit l'historique</b></span>")
+
+    fond = "rgba(93,202,165,0.07)" if verifie else "rgba(224,160,74,0.07)"
+    bord = "#5DCAA5" if verifie else "#E0A04A"
+    with st.container(key="hyp_etat"):
+        st.markdown(
+            "<div style='background:" + fond + ";border:1px solid " + bord
+            + "66;border-radius:10px;padding:10px 14px;margin-top:10px;'>"
+            "<div style='font-size:12.5px;font-weight:700;color:" + bord + ";'>État des ajustements"
+            + ("<span style='font-weight:400;color:#8a90a0;font-size:10px;margin-left:10px;'>vérifié le "
+               + verifie + "</span>" if verifie else "") + "</div>"
+            "<div style='font-size:11.5px;margin-top:6px;'>" + bloc("Revenus", nb_rev)
+            + "<span style='margin:0 26px;'></span>" + bloc("Charges", nb_chg) + "</div></div>",
+            unsafe_allow_html=True)
+        if not verifie:
+            b1, _b2 = st.columns([1.4, 4])
+            b1.button("J'ai vérifié, rien à ajuster", key="hyp_ok",
+                      on_click=_hyp_confirmer, use_container_width=True)
+
+    # ---- Moteurs du modèle ----
+    rat = [2.0, 3.4, 0.9, 0.9, 1.4]
+    ent = "font-size:9.5px;font-weight:700;letter-spacing:0.5px;color:#5a6478;"
+    with st.container(key="hyp_card"):
+        st.markdown("<div style='font-size:15px;font-weight:700;color:#e8ecf4;'>Moteurs du modèle</div>"
+                    "<div style='font-size:11px;color:#8a90a0;'>Valeurs calculées depuis vos relevés · "
+                    "lecture seule · corriger à la source</div>", unsafe_allow_html=True)
+        h = st.columns(rat)
+        h[0].markdown(f"<div style='{ent}'>MOTEUR</div>", unsafe_allow_html=True)
+        h[1].markdown(f"<div style='{ent}'>MÉTHODE DE CALCUL</div>", unsafe_allow_html=True)
+        h[2].markdown(f"<div style='{ent}text-align:right;'>RÉALISÉ</div>", unsafe_allow_html=True)
+        h[3].markdown(f"<div style='{ent}text-align:right;'>PROJETÉ</div>", unsafe_allow_html=True)
+        h[4].markdown(f"<div style='{ent}text-align:right;'>SOURCE</div>", unsafe_allow_html=True)
+        st.markdown("<div style='border-top:1px solid #1E2A3D;'></div>", unsafe_allow_html=True)
+
+        # (libellé, méthode, clé, source, retrait, couleur du projeté)
+        lignes = [
+            ("ENCAISSEMENTS", None, None, None, False, None),
+            ("CA récurrent", "Moyenne mensuelle des flux récurrents détectés",
+             "rec", "Revenu Tracker", False, "#5DCAA5"),
+            ("CA ponctuel", "Moyenne mensuelle des encaissements sans périodicité",
+             "pon", "Revenu Tracker", False, "#fff"),
+            ("DÉCAISSEMENTS", None, None, None, False, None),
+            ("Charges fixes", "Moyenne mensuelle des postes stables et échéanciers",
+             "fix", "Charges Tracker", False, "#fff"),
+            ("dont échéances fiscales", "Moyenne mensuelle des échéances du calendrier fiscal",
+             "fisc", "Calendrier fiscal", True, "#8a90a0"),
+            ("Charges variables", "Moyenne mensuelle des charges indexées sur le CA",
+             "var", "Charges Tracker", False, "#fff"),
+            ("Charges ponctuelles", "Moyenne mensuelle des décaissements sans périodicité",
+             "ponc", "Charges Tracker", False, "#E0A04A"),
+        ]
+        for lib, meth, cle, src, retrait, coul in lignes:
+            if meth is None:
+                st.markdown("<div style='font-size:10.5px;font-weight:700;letter-spacing:0.5px;"
+                            "color:#c3ccdd;margin:10px 0 2px;'>" + lib + "</div>",
+                            unsafe_allow_html=True)
+                continue
+            r, p = m[cle]
+            c = st.columns(rat, vertical_alignment="center")
+            pad = "padding-left:16px;" if retrait else ""
+            tc = "#8a90a0" if retrait else "#fff"
+            c[0].markdown(f"<div style='color:{tc};font-size:12px;{pad}'>{lib}</div>",
+                          unsafe_allow_html=True)
+            c[1].markdown(f"<div style='color:#8a90a0;font-size:11px;'>{meth}</div>",
+                          unsafe_allow_html=True)
+            c[2].markdown(f"<div style='color:#c3ccdd;font-size:11.5px;text-align:right;'>"
+                          f"{_ct_k(r)}</div>", unsafe_allow_html=True)
+            c[3].markdown(f"<div style='color:{coul};font-size:11.5px;text-align:right;"
+                          f"font-weight:700;'>{_ct_k(p)}</div>", unsafe_allow_html=True)
+            c[4].markdown(f"<div style='color:#5A96FF;font-size:11px;text-align:right;'>{src} →</div>",
+                          unsafe_allow_html=True)
+
+        st.markdown("<div style='border-top:1px solid #1E2A3D;margin-top:8px;'></div>",
+                    unsafe_allow_html=True)
+        sr, sp = m["solde"]
+        t = st.columns(rat, vertical_alignment="center")
+        t[0].markdown("<div style='font-size:12.5px;font-weight:700;color:#fff;'>Solde net moyen</div>",
+                      unsafe_allow_html=True)
+        t[1].markdown("<div style='color:#8a90a0;font-size:11px;'>Encaissements moins décaissements</div>",
+                      unsafe_allow_html=True)
+        t[2].markdown(f"<div style='color:#c3ccdd;font-size:12px;text-align:right;font-weight:700;'>"
+                      f"+ {_ct_k(sr)}</div>", unsafe_allow_html=True)
+        t[3].markdown(f"<div style='color:#5DCAA5;font-size:12.5px;text-align:right;font-weight:800;'>"
+                      f"+ {_ct_k(sp)}</div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:80px;'></div>", unsafe_allow_html=True)
 
 
 def ecran_dashboard():
@@ -2339,7 +2425,6 @@ def ecran_dashboard():
         "</style>",
         unsafe_allow_html=True,
     )
-    _seed_hyp_state()
     top = st.tabs(["Ma tréso", "Hypothèses", "Compte de résultat cash", "Smart tréso", "Smart allocation"])
     with top[0]:
         _onglet_ma_treso()
