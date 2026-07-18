@@ -1352,23 +1352,25 @@ def _ct_reals(cat):
     return list(cat[5])
 
 
-def _ct_init():
-    """Sème l'état des projections : mode de réglage et valeurs par défaut.
-    Les postes exclus du prévisionnel démarrent à 0 mais restent modifiables :
-    si le client saisit un montant, c'est le sien qui prime.
+def _ct_store():
+    """Stockage PERSISTANT des projections de charges, en dehors des clés de widgets.
 
-    Appelé à CHAQUE rendu, sans drapeau : Streamlit détruit l'état des champs qui ne
-    sont pas affichés, et les trackers vivent dans des sous-onglets exclusifs. Un
-    semis unique laisserait donc les champs retomber à 0 au changement de pilule."""
-    for cat in _CT_CATS:
-        cid, profil, inclus = cat[0], cat[3], cat[4]
-        if profil == "échéancier":
-            continue  # piloté par le calendrier fiscal, pas de saisie
-        defaut = round(sum(_ct_reals(cat)) / 3.0, 1) if inclus else 0.0
-        st.session_state.setdefault(f"ct_mode_{cid}", "€")
-        st.session_state.setdefault(f"ct_g_{cid}", 0.0)
-        for k in range(3):
-            st.session_state.setdefault(f"ct_p{k}_{cid}", defaut)
+    Streamlit détruit l'état des widgets qui ne sont pas affichés, et les trackers
+    vivent dans des sous-onglets exclusifs : stocker les valeurs dans les clés des
+    champs les faisait disparaître puis réapparaître, et perdait les saisies. Un
+    dictionnaire ordinaire de session, lui, survit à tout.
+
+    Les postes exclus du prévisionnel démarrent à 0 mais restent modifiables."""
+    if "ct_store" not in st.session_state:
+        d = {}
+        for cat in _CT_CATS:
+            cid, profil, inclus = cat[0], cat[3], cat[4]
+            if profil == "échéancier":
+                continue  # piloté par le calendrier fiscal, pas de saisie
+            defaut = round(sum(_ct_reals(cat)) / 3.0, 1) if inclus else 0.0
+            d[cid] = {"mode": "€", "g": 0.0, "p": [defaut, defaut, defaut]}
+        st.session_state.ct_store = d
+    return st.session_state.ct_store
 
 
 def _ct_projections(cat, base):
@@ -1379,30 +1381,30 @@ def _ct_projections(cat, base):
     if profil == "échéancier":
         pm = _ct_impots_mensuels()
         return [pm.get((y, m), 0.0) for y, m, _ in _CT_MOIS_PROJ]
-    # Un poste exclu du prévisionnel part de 0, pas de sa moyenne observée.
-    defaut = base if inclus else 0.0
-    if st.session_state.get(f"ct_mode_{cid}", "€") == "%":
-        g = st.session_state.get(f"ct_g_{cid}", 0.0) / 100.0
-        vals, v = [], defaut
+    s = _ct_store()[cid]
+    if s["mode"] == "%":
+        # Un poste exclu du prévisionnel part de 0, pas de sa moyenne observée.
+        g = s["g"] / 100.0
+        vals, v = [], (base if inclus else 0.0)
         for _ in range(3):
             v = v * (1.0 + g)
             vals.append(round(v, 1))
         return vals
-    return [round(st.session_state.get(f"ct_p{k}_{cid}", defaut), 1) for k in range(3)]
+    return [round(x, 1) for x in s["p"]]
 
 
 def _crc_charges_tracker():
     """Charges Tracker : 3 mois réalisés + 3 mois projetés par catégorie de taxonomie.
     La ligne 'Charges fixes du mois' alimente la couverture du Revenu Tracker."""
-    _ct_init()
+    _ct_store()
     st.markdown(
         "<style>"
         ".st-key-ct_card{background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;margin-top:12px;}"
-        "[class*='st-key-ct_p'] button[data-testid='stNumberInputStepUp'],"
-        "[class*='st-key-ct_p'] button[data-testid='stNumberInputStepDown'],"
-        "[class*='st-key-ct_g_'] button[data-testid='stNumberInputStepUp'],"
-        "[class*='st-key-ct_g_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
-        "[class*='st-key-ct_p'] input,[class*='st-key-ct_g_'] input{text-align:right !important;font-size:12px !important;}"
+        # Les champs n'ont volontairement pas de clé (cf. _ct_store) : on cible donc
+        # depuis la carte, qui elle en a une.
+        ".st-key-ct_card button[data-testid='stNumberInputStepUp'],"
+        ".st-key-ct_card button[data-testid='stNumberInputStepDown']{display:none !important;}"
+        ".st-key-ct_card input{text-align:right !important;font-size:12px !important;}"
         "</style>",
         unsafe_allow_html=True,
     )
@@ -1483,27 +1485,29 @@ def _crc_charges_tracker():
             if profil == "échéancier":
                 c[7].markdown("<div style='font-size:10px;color:#E0A04A;text-align:center;'>calendrier</div>",
                               unsafe_allow_html=True)
-            else:
-                with c[7]:
-                    mode = st.pills("mode", ["€", "%"], key=f"ct_mode_{cid}",
-                                    label_visibility="collapsed")
-                    if not mode:
-                        mode = st.session_state.get(f"ct_mode_{cid}", "€") or "€"
-                    if mode == "%":
-                        st.number_input("taux", step=0.5, key=f"ct_g_{cid}",
-                                        label_visibility="collapsed")
-            # Projections
-            for k in range(3):
-                if profil == "échéancier":
+                for k in range(3):
                     coul = "#E0A04A" if projs[k] else "#5a6478"
                     c[8 + k].markdown(f"<div style='text-align:right;color:{coul};font-size:11.5px;"
                                       f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
-                elif st.session_state.get(f"ct_mode_{cid}", "€") == "%":
+                continue
+            # Widgets SANS clé : leur valeur affichée vient du stockage persistant et
+            # leur retour y est réécrit. Rien ne dépend donc de l'état volatil des widgets.
+            s = _ct_store()[cid]
+            with c[7]:
+                choix = st.pills("mode", ["€", "%"], default=s["mode"],
+                                 label_visibility="collapsed")
+                if choix:
+                    s["mode"] = choix
+                if s["mode"] == "%":
+                    s["g"] = st.number_input("taux", value=float(s["g"]), step=0.5,
+                                             label_visibility="collapsed")
+            for k in range(3):
+                if s["mode"] == "%":
                     c[8 + k].markdown(f"<div style='text-align:right;color:#9fc0ff;font-size:11.5px;"
                                       f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
                 else:
-                    c[8 + k].number_input("p", step=0.5, key=f"ct_p{k}_{cid}",
-                                          label_visibility="collapsed")
+                    s["p"][k] = c[8 + k].number_input("p", value=float(s["p"][k]), step=0.5,
+                                                      label_visibility="collapsed")
 
         # Totaux
         st.markdown("<div style='border-top:1px solid #1E2A3D;margin-top:6px;'></div>",
@@ -1547,8 +1551,8 @@ def _flux_projetes():
     """Encaissements et décaissements projetés (M+1..M+3), DÉRIVÉS des trackers.
     La Vue d'ensemble ne doit pas raconter autre chose que le Revenu Tracker et le
     Charges Tracker : ses bâtonnets projetés viennent d'ici, pas d'un jeu figé."""
-    _rt_init()
-    _ct_init()
+    _rt_store()
+    _ct_store()
     ca_rec, ca_pon = [0.0] * 3, [0.0] * 3
     for cid, _s, _l, profil, reals in _RT_CATS:
         base = round(sum(reals) / 3.0, 1)
@@ -1611,46 +1615,44 @@ _RT_CATS = [
 ]
 
 
-def _rt_init():
-    """Sème les projections. Comme pour les charges, un poste ponctuel démarre à 0
-    mais reste modifiable : on ne projette pas un encaissement sans périodicité.
-    Appelé à chaque rendu (cf. _ct_init) : sans cela les champs retombent à 0 quand
-    on quitte le sous-onglet."""
-    for cid, _sec, _lib, profil, reals in _RT_CATS:
-        defaut = round(sum(reals) / 3.0, 1) if profil != "ponctuel" else 0.0
-        st.session_state.setdefault(f"rt_mode_{cid}", "€")
-        st.session_state.setdefault(f"rt_g_{cid}", 0.0)
-        for k in range(3):
-            st.session_state.setdefault(f"rt_p{k}_{cid}", defaut)
+def _rt_store():
+    """Stockage persistant des projections de revenus (même raison que _ct_store :
+    les clés de widgets ne survivent pas au changement de sous-onglet).
+    Un poste ponctuel démarre à 0 : on ne projette pas un encaissement sans périodicité."""
+    if "rt_store" not in st.session_state:
+        d = {}
+        for cid, _sec, _lib, profil, reals in _RT_CATS:
+            defaut = round(sum(reals) / 3.0, 1) if profil != "ponctuel" else 0.0
+            d[cid] = {"mode": "€", "g": 0.0, "p": [defaut, defaut, defaut]}
+        st.session_state.rt_store = d
+    return st.session_state.rt_store
 
 
 def _rt_projections(cid, profil, base):
     """Projections M+1..M+3. En mode %, le taux de croissance s'applique au mois
     précédent de proche en proche."""
-    defaut = base if profil != "ponctuel" else 0.0
-    if st.session_state.get(f"rt_mode_{cid}", "€") == "%":
-        g = st.session_state.get(f"rt_g_{cid}", 0.0) / 100.0
-        vals, v = [], defaut
+    s = _rt_store()[cid]
+    if s["mode"] == "%":
+        g = s["g"] / 100.0
+        vals, v = [], (base if profil != "ponctuel" else 0.0)
         for _ in range(3):
             v = v * (1.0 + g)
             vals.append(round(v, 1))
         return vals
-    return [round(st.session_state.get(f"rt_p{k}_{cid}", defaut), 1) for k in range(3)]
+    return [round(x, 1) for x in s["p"]]
 
 
 def _crc_revenu_tracker():
     """Revenu Tracker : 3 mois réalisés + 3 mois projetés, par nature de rentrée.
     La couverture des charges fixes est calculée mois par mois, jamais en moyenne."""
-    _rt_init()
-    _ct_init()  # nécessaire : la couverture dépend des projections de charges
+    _rt_store()
+    _ct_store()  # nécessaire : la couverture dépend des projections de charges
     st.markdown(
         "<style>"
         ".st-key-rt_card{background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;padding:14px 18px;margin-top:12px;}"
-        "[class*='st-key-rt_p'] button[data-testid='stNumberInputStepUp'],"
-        "[class*='st-key-rt_p'] button[data-testid='stNumberInputStepDown'],"
-        "[class*='st-key-rt_g_'] button[data-testid='stNumberInputStepUp'],"
-        "[class*='st-key-rt_g_'] button[data-testid='stNumberInputStepDown']{display:none !important;}"
-        "[class*='st-key-rt_p'] input,[class*='st-key-rt_g_'] input{text-align:right !important;font-size:12px !important;}"
+        ".st-key-rt_card button[data-testid='stNumberInputStepUp'],"
+        ".st-key-rt_card button[data-testid='stNumberInputStepDown']{display:none !important;}"
+        ".st-key-rt_card input{text-align:right !important;font-size:12px !important;}"
         "</style>",
         unsafe_allow_html=True,
     )
@@ -1714,19 +1716,23 @@ def _crc_revenu_tracker():
                 c[2 + k].markdown(f"<div style='{gris}'>{_ct_k(reals[k])}</div>", unsafe_allow_html=True)
             c[5].markdown(f"<div style='color:#fff;font-size:11.5px;text-align:right;font-weight:600;'>"
                           f"{_ct_k(base)}</div>", unsafe_allow_html=True)
+            # Widgets sans clé, alimentés par le stockage persistant (cf. _ct_store).
+            s = _rt_store()[cid]
             with c[6]:
-                mode = st.pills("mode", ["€", "%"], key=f"rt_mode_{cid}", label_visibility="collapsed")
-                if not mode:
-                    mode = st.session_state.get(f"rt_mode_{cid}", "€") or "€"
-                if mode == "%":
-                    st.number_input("taux", step=0.5, key=f"rt_g_{cid}", label_visibility="collapsed")
+                choix = st.pills("mode", ["€", "%"], default=s["mode"],
+                                 label_visibility="collapsed")
+                if choix:
+                    s["mode"] = choix
+                if s["mode"] == "%":
+                    s["g"] = st.number_input("taux", value=float(s["g"]), step=0.5,
+                                             label_visibility="collapsed")
             for k in range(3):
-                if st.session_state.get(f"rt_mode_{cid}", "€") == "%":
+                if s["mode"] == "%":
                     c[7 + k].markdown(f"<div style='text-align:right;color:#9fc0ff;font-size:11.5px;"
                                       f"font-weight:600;'>{_ct_k(projs[k])}</div>", unsafe_allow_html=True)
                 else:
-                    c[7 + k].number_input("p", step=0.5, key=f"rt_p{k}_{cid}",
-                                          label_visibility="collapsed")
+                    s["p"][k] = c[7 + k].number_input("p", value=float(s["p"][k]), step=0.5,
+                                                      label_visibility="collapsed")
 
         st.markdown("<div style='border-top:1px solid #1E2A3D;margin-top:6px;'></div>",
                     unsafe_allow_html=True)
@@ -2243,8 +2249,8 @@ def _hyp_moteurs():
     """Agrège les moteurs du modèle DEPUIS les trackers. Rien n'est saisi ici :
     tout est dérivé, ce qui rend la double saisie impossible par construction.
     Retourne des moyennes mensuelles (réalisé M-2→M0, projeté M+1→M+3)."""
-    _rt_init()
-    _ct_init()
+    _rt_store()
+    _ct_store()
 
     def moy(v):
         return sum(v) / 3.0
@@ -2290,8 +2296,8 @@ def _hyp_moteurs():
 def _hyp_ajustements():
     """Compte les lignes dont la projection s'écarte de sa valeur par défaut.
     Sert à dire au client si sa projection reproduit l'historique ou non."""
-    _rt_init()
-    _ct_init()
+    _rt_store()
+    _ct_store()
     nb_rev = 0
     for cid, _s, _l, profil, reals in _RT_CATS:
         base = round(sum(reals) / 3.0, 1)
