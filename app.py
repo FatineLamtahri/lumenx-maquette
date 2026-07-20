@@ -2574,6 +2574,121 @@ def _onglet_hypotheses():
     st.markdown("<div style='height:80px;'></div>", unsafe_allow_html=True)
 
 
+# ---- Smart Tréso : allocation de la trésorerie en poches --------------------------
+_SMART_TRESO_DISPO = 1240.0   # k€ — solde agrégé (réf. Ma tréso)
+_SMART_LEGACY = 180.0         # k€ — provision annuelle : IS + dividendes + CFE
+_SMART_LEGACY_IS = 90.0
+_SMART_LEGACY_DIV = 90.0
+
+
+def _smart_aller_allocation():
+    st.session_state.dash_tab_sel = "Smart allocation"
+
+
+def _smart_treso():
+    """Smart Tréso : répartition de la trésorerie en poches à t=0.
+    Le fonctionnement (1 mois de décaissements) et les charges viennent du modèle ;
+    la couverture de précaution est ajustable de 1 à 6 mois et l'excédent bascule
+    automatiquement en investissement."""
+    m = _hyp_moteurs()
+    incompressible = m["fix"][1]
+    variable = m["var"][1] + m["ponc"][1]
+    fonct = incompressible + variable
+    st.session_state.setdefault("smart_nb_mois", 3)
+    nb = st.session_state["smart_nb_mois"]
+    precaution = nb * fonct
+    legacy = _SMART_LEGACY
+    dispo = _SMART_TRESO_DISPO
+    invest = max(0.0, dispo - precaution - legacy)
+
+    st.markdown(
+        "<style>"
+        ".st-key-smart_f,.st-key-smart_p,.st-key-smart_l{background:#0E1626;border:1px solid #1E2A3D;"
+        "border-radius:14px;padding:14px 18px;min-height:214px;}"
+        ".st-key-smart_f{border-left:4px solid #2D6BFF;}"
+        ".st-key-smart_p{border-left:4px solid #5DCAA5;}"
+        ".st-key-smart_l{border-left:4px solid #7F77DD;}"
+        ".st-key-smart_invest{background:#0E1626;border:1px solid rgba(224,160,74,0.5);"
+        "border-left:4px solid #E0A04A;border-radius:14px;padding:14px 18px;margin-top:12px;}"
+        ".st-key-smart_go button{background:rgba(45,107,255,0.14) !important;"
+        "border:1px solid #2D6BFF !important;color:#5A96FF !important;font-weight:600 !important;}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
+
+    # En-tête + barre d'allocation (segments qui somment à la trésorerie)
+    segs = [(fonct, "#2D6BFF"), (precaution - fonct, "#5DCAA5"),
+            (legacy, "#7F77DD"), (invest, "#E0A04A")]
+    bar = '<div style="display:flex;height:40px;border-radius:8px;overflow:hidden;margin-top:12px;">'
+    for val, col in segs:
+        w = max(0.0, val / dispo * 100.0)
+        bar += ('<div style="width:' + f"{w:.2f}" + '%;background:' + col + ';opacity:0.85;'
+                'display:flex;align-items:center;justify-content:center;font-size:11px;'
+                'color:#0b1220;font-weight:700;">' + (_ct_k(val) if w > 4 else "") + '</div>')
+    bar += '</div>'
+    st.markdown(
+        '<div style="display:flex;justify-content:space-between;align-items:flex-end;">'
+        '<div><div style="font-size:16px;font-weight:700;color:#e8ecf4;">Allocation de la trésorerie</div>'
+        '<div style="font-size:12px;color:#8a90a0;">Photo à t=0 · basée sur le prévisionnel 12 mois · '
+        'montants en k€</div></div>'
+        '<div style="text-align:right;"><div style="font-size:12px;color:#8a90a0;">Trésorerie disponible</div>'
+        '<div style="font-size:20px;font-weight:800;color:#fff;">' + _ct_k(dispo) + ' k€</div></div></div>'
+        + bar, unsafe_allow_html=True)
+
+    def _detail(lbl, val):
+        return ('<div style="display:flex;margin-top:6px;"><span style="flex:1;color:#c3ccdd;'
+                'font-size:12px;">' + lbl + '</span><span style="color:#fff;font-size:12px;'
+                'font-weight:600;">' + _ct_k(val) + ' k€</span></div>')
+
+    c1, c2, c3 = st.columns(3, gap="medium")
+    with c1:
+        with st.container(key="smart_f"):
+            st.markdown(
+                '<div style="font-size:14px;font-weight:700;color:#9fc0ff;">Poche de fonctionnement</div>'
+                "<div style=\"font-size:11px;color:#8a90a0;\">1 mois d'exploitation · immédiatement disponible</div>"
+                '<div style="font-size:26px;font-weight:800;color:#fff;margin-top:12px;">' + _ct_k(fonct) + ' k€</div>'
+                '<div style="border-top:1px solid #1E2A3D;margin-top:10px;padding-top:8px;">'
+                + _detail("Trésorerie incompressible", incompressible)
+                + _detail("Variable &amp; aléatoire", variable) + '</div>',
+                unsafe_allow_html=True)
+    with c2:
+        with st.container(key="smart_p"):
+            st.markdown(
+                '<div style="font-size:14px;font-weight:700;color:#8fe0c4;">Poche de précaution</div>'
+                '<div style="font-size:11px;color:#8a90a0;">Matelas de sécurité · fonctionnement inclus</div>'
+                '<div style="font-size:26px;font-weight:800;color:#fff;margin-top:12px;">' + _ct_k(precaution)
+                + ' k€<span style="font-size:11px;color:#5a6478;font-weight:400;margin-left:8px;">= '
+                + str(nb) + ' × ' + _ct_k(fonct) + ' k€</span></div>',
+                unsafe_allow_html=True)
+            st.slider("Couverture (mois de fonctionnement)", 1, 6, key="smart_nb_mois")
+    with c3:
+        with st.container(key="smart_l"):
+            st.markdown(
+                '<div style="font-size:14px;font-weight:700;color:#b9b3f0;">Poche Legacy</div>'
+                '<div style="font-size:11px;color:#8a90a0;">Provision pour paiements annuels</div>'
+                '<div style="font-size:26px;font-weight:800;color:#fff;margin-top:12px;">' + _ct_k(legacy) + ' k€</div>'
+                '<div style="border-top:1px solid #1E2A3D;margin-top:10px;padding-top:8px;">'
+                + _detail("IS · solde &amp; acomptes", _SMART_LEGACY_IS)
+                + _detail("Dividendes · CFE", _SMART_LEGACY_DIV) + '</div>',
+                unsafe_allow_html=True)
+
+    with st.container(key="smart_invest"):
+        st.markdown(
+            '<div style="font-size:14px;font-weight:700;color:#f0c489;">Poche d\'investissement</div>'
+            '<div style="font-size:11px;color:#8a90a0;">Excédent plaçable une fois les autres poches '
+            'servies · court terme, ≤ 12 mois</div>'
+            '<div style="font-size:30px;font-weight:800;color:#E0A04A;margin-top:10px;">' + _ct_k(invest) + ' k€</div>'
+            '<div style="font-size:11px;color:#5a6478;margin-top:8px;">Horizon court : compte à terme, '
+            'fonds monétaire, obligations &lt; 12 mois — capital préservé, liquidité conservée</div>',
+            unsafe_allow_html=True)
+
+    _b1, b2, _b3 = st.columns([1, 1.2, 1])
+    with b2:
+        st.button("Voir les placements par poche →", key="smart_go",
+                  on_click=_smart_aller_allocation, use_container_width=True)
+    st.markdown("<div style='height:60px;'></div>", unsafe_allow_html=True)
+
+
 def ecran_dashboard():
     """Tableau de bord : 4 onglets horizontaux (Ma tréso, Compte de résultat cash,
     Smart tréso, Smart allocation). Le Compte de résultat cash a 4 sous-onglets
@@ -2650,10 +2765,7 @@ def ecran_dashboard():
         else:  # Vue d'ensemble
             _report_flux()
     elif actif == "Smart tréso":
-        _placeholder_onglet(
-            "Smart Tréso",
-            "Allocation de la trésorerie en poches (fonctionnement, précaution, "
-            "investissement, legacy). À venir.")
+        _smart_treso()
     else:
         _report_placements()
 
