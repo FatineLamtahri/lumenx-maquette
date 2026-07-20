@@ -2686,11 +2686,21 @@ _SA_OPTIONS = {
 _SA_EXISTANT = {"fonct": 0.0, "prec": 100.0, "leg": 0.0, "inv": 100.0}  # k€ déjà placés
 
 
-def _sa_label(o):
-    """Libellé d'option pour le radio : nom · SRI · taux · horizon."""
-    nom, sri, brut, net, hor = o
-    return (nom + "   ·   SRI " + str(sri) + "   ·   " + ("%.1f" % brut).replace(".", ",")
-            + " % brut / " + ("%.2f" % net).replace(".", ",") + " % net   ·   " + hor)
+_SA_RATIOS = [0.4, 3.0, 0.8, 1.9, 1.4, 0.8]  # sélection · nom · SRI · rendement · horizon · DICI
+
+
+def _sa_sri_badge(sri):
+    coul = "#5DCAA5" if sri == 1 else ("#E0A04A" if sri == 2 else "#E0604A")
+    fond = ("rgba(93,202,165,0.16)" if sri == 1
+            else ("rgba(224,160,74,0.16)" if sri == 2 else "rgba(224,96,74,0.14)"))
+    return ("<span style='display:inline-block;width:34px;text-align:center;border-radius:9px;"
+            "font-size:10px;font-weight:700;padding:2px 0;background:" + fond + ";border:1px solid "
+            + coul + ";color:" + coul + ";'>" + str(sri) + "</span>")
+
+
+def _sa_pick(pid, i):
+    """Sélection unique par poche : mémorise l'indice choisi (0 = ne pas placer)."""
+    st.session_state["sa_pick_" + pid] = i
 
 
 def _smart_allocation():
@@ -2717,6 +2727,9 @@ def _smart_allocation():
         ".st-key-sa_leg{border-left:4px solid #7F77DD;}"
         ".st-key-sa_inv{border-left:4px solid #E0A04A;}"
         "[class*='st-key-sa_mnt_'] input{text-align:right !important;}"
+        # boutons de sélection : glyphe radio, transparents et compacts
+        "[class*='st-key-sa_b_'] button{background:transparent !important;border:none !important;"
+        "padding:0 !important;min-height:0 !important;font-size:16px !important;color:#5DCAA5 !important;}"
         ".st-key-sa_go button{background:rgba(45,107,255,0.16) !important;"
         "border:1px solid #2D6BFF !important;color:#5A96FF !important;font-weight:700 !important;}"
         "</style>",
@@ -2732,46 +2745,78 @@ def _smart_allocation():
         '<div style="align-self:center;font-size:11px;color:#5A96FF;">Revoir mes réponses →</div></div>',
         unsafe_allow_html=True)
 
+    ent = "font-size:9px;font-weight:700;letter-spacing:0.4px;color:#5a6478;"
     total_place = total_gain = 0.0
     nb_sel = 0
     for pid, nom, coul, txtcol, montant in poches:
         existant = _SA_EXISTANT[pid]
         max_eur = max(0.0, montant - existant) * 1000.0
+        sel = st.session_state.setdefault("sa_pick_" + pid, 0)
+        opts = _SA_OPTIONS[pid]
+        # Si la couverture a changé et vidé la poche, on repasse en « ne pas placer ».
+        if max_eur <= 0 and sel != 0:
+            sel = st.session_state["sa_pick_" + pid] = 0
         with st.container(key="sa_" + pid):
             ex = ("" if existant == 0 else " · existant " + _ct_k(existant) + " k€")
             st.markdown(
-                '<div style="font-size:13.5px;font-weight:700;color:' + txtcol + ';margin-bottom:4px;">'
+                '<div style="font-size:13.5px;font-weight:700;color:' + txtcol + ';margin-bottom:2px;">'
                 + nom + ' · ' + _ct_k(montant) + ' k€<span style="font-size:11px;font-weight:400;'
                 'color:#8a90a0;">' + ex + '</span></div>',
                 unsafe_allow_html=True)
-            opts = _SA_OPTIONS[pid]
-            labels = ["Ne pas placer"] + [_sa_label(o) for o in opts]
-            col_opt, col_mnt = st.columns([2.6, 1.15], vertical_alignment="top")
-            with col_opt:
-                choix = st.radio("Placement " + nom, labels, index=0,
-                                 key="sa_choix_" + pid, label_visibility="collapsed")
-            idx = labels.index(choix) if choix in labels else 0
-            actif = idx > 0
-            # Le champ montant est TOUJOURS affiché (grisé si « Ne pas placer »), pour
-            # qu'on voie d'emblée qu'un montant est saisissable, plafonné au disponible.
+            # En-tête de colonnes
+            h = st.columns(_SA_RATIOS, vertical_alignment="center")
+            for i, lbl in enumerate(["", "PLACEMENT", "SRI", "RENDEMENT · BRUT / NET", "HORIZON", "DICI"]):
+                h[i].markdown("<div style='" + ent + "'>" + lbl + "</div>", unsafe_allow_html=True)
+            # Ligne « Ne pas placer » + une ligne par option
+            for i in range(len(opts) + 1):
+                c = st.columns(_SA_RATIOS, vertical_alignment="center")
+                actif_i = (i == sel)
+                c[0].button("●" if actif_i else "○", key="sa_b_" + pid + "_" + str(i),
+                            on_click=_sa_pick, args=(pid, i))
+                if i == 0:
+                    tc = "#fff" if actif_i else "#8a90a0"
+                    c[1].markdown("<div style='color:" + tc + ";font-size:12.5px;'>Ne pas placer</div>",
+                                  unsafe_allow_html=True)
+                    for j in (2, 3, 4, 5):
+                        c[j].markdown("", unsafe_allow_html=True)
+                else:
+                    o = opts[i - 1]
+                    tc = "#fff" if actif_i else "#c3ccdd"
+                    fw = "600" if actif_i else "400"
+                    c[1].markdown("<div style='color:" + tc + ";font-size:12.5px;font-weight:" + fw
+                                  + ";'>" + o[0] + "</div>", unsafe_allow_html=True)
+                    c[2].markdown(_sa_sri_badge(o[1]), unsafe_allow_html=True)
+                    c[3].markdown("<div style='color:#c3ccdd;font-size:12px;'>"
+                                  + ("%.1f" % o[2]).replace(".", ",") + " % · "
+                                  + ("%.2f" % o[3]).replace(".", ",") + " %</div>", unsafe_allow_html=True)
+                    c[4].markdown("<div style='color:#8a90a0;font-size:12px;'>" + o[4] + "</div>",
+                                  unsafe_allow_html=True)
+                    c[5].markdown("<a href='#' style='color:#5A96FF;font-size:11.5px;'>DICI ↓</a>",
+                                  unsafe_allow_html=True)
+            # Champ montant, toujours visible, grisé tant qu'on reste sur « ne pas placer »
             mk = "sa_mnt_" + pid
             st.session_state.setdefault(mk, float(round(max_eur)))
             if st.session_state.get(mk, 0.0) > max_eur:
                 st.session_state[mk] = float(round(max_eur))
-            with col_mnt:
+            actif = sel > 0
+            cm1, cm2 = st.columns([1.3, 3], vertical_alignment="center")
+            with cm1:
                 mont = st.number_input("Montant à placer (€)", min_value=0.0,
                                        max_value=float(max_eur), step=1000.0,
                                        key=mk, disabled=not actif)
-                if actif:
-                    gain = mont / 1000.0 * opts[idx - 1][3] / 100.0
-                    st.caption("max " + f"{max_eur:,.0f}".replace(",", " ") + " € · gain + "
-                               + _ct_k(gain) + " k€ net/an")
-                    total_place += mont / 1000.0
-                    total_gain += gain
-                    nb_sel += 1
-                else:
-                    st.caption("max " + f"{max_eur:,.0f}".replace(",", " ")
-                               + " € · choisissez une option")
+            if actif:
+                gain = mont / 1000.0 * opts[sel - 1][3] / 100.0
+                cm2.markdown("<div style='margin-top:26px;font-size:12px;color:#8a90a0;'>Plafond "
+                             + f"{max_eur:,.0f}".replace(",", " ") + " € · gain espéré <span style='color:"
+                             + txtcol + ";font-weight:700;'>+ " + _ct_k(gain) + " k€ net/an</span></div>",
+                             unsafe_allow_html=True)
+                total_place += mont / 1000.0
+                total_gain += gain
+                nb_sel += 1
+            else:
+                cm2.markdown("<div style='margin-top:26px;font-size:12px;color:#5a6478;'>Plafond "
+                             + f"{max_eur:,.0f}".replace(",", " ") + " € · choisissez une option ci-dessus"
+                             + "</div>", unsafe_allow_html=True)
 
     if nb_sel:
         with st.container(key="sa_go"):
