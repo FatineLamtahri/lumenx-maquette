@@ -2619,13 +2619,14 @@ def _smart_treso():
     # En-tête + barre d'allocation (segments qui somment à la trésorerie)
     segs = [(fonct, "#2D6BFF"), (precaution - fonct, "#5DCAA5"),
             (legacy, "#7F77DD"), (invest, "#E0A04A")]
-    bar = '<div style="display:flex;height:40px;border-radius:8px;overflow:hidden;margin-top:12px;">'
+    bar = '<div style="display:flex;height:46px;border-radius:8px;overflow:hidden;margin:12px 0 4px;">'
     for val, col in segs:
         w = max(0.0, val / dispo * 100.0)
         bar += ('<div style="width:' + f"{w:.2f}" + '%;background:' + col + ';opacity:0.85;'
-                'display:flex;align-items:center;justify-content:center;font-size:11px;'
-                'color:#0b1220;font-weight:700;">' + (_ct_k(val) if w > 4 else "") + '</div>')
-    bar += '</div>'
+                'display:flex;align-items:center;justify-content:center;font-size:14.5px;'
+                'color:#0b1220;font-weight:800;">' + (_ct_k(val) if w > 5 else "") + '</div>')
+    # Espace entre le bandeau d'allocation et les cartes des poches.
+    bar += '</div><div style="height:14px;"></div>'
     st.markdown(
         '<div style="display:flex;justify-content:space-between;align-items:flex-end;">'
         '<div><div style="font-size:16px;font-weight:700;color:#e8ecf4;">Allocation de la trésorerie</div>'
@@ -2660,7 +2661,9 @@ def _smart_treso():
                 + ' k€<span style="font-size:11px;color:#5a6478;font-weight:400;margin-left:8px;">= '
                 + str(nb) + ' × ' + _ct_k(fonct) + ' k€</span></div>',
                 unsafe_allow_html=True)
-            st.slider("Couverture (mois de fonctionnement)", 1, 6, key="smart_nb_mois")
+            # select_slider affiche les crans 1/2/3/4/5/6 (le slider continu n'en montre aucun)
+            st.select_slider("Couverture (mois de fonctionnement)",
+                             options=[1, 2, 3, 4, 5, 6], key="smart_nb_mois")
     with c3:
         with st.container(key="smart_l"):
             st.markdown(
