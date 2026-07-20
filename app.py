@@ -2585,11 +2585,19 @@ def _smart_aller_allocation():
     st.session_state.dash_tab_sel = "Smart allocation"
 
 
+def _date_dernier_releve():
+    """Date du dernier relevé = dernier jour du dernier mois réalisé.
+    Calculée, jamais écrite en dur : elle suit le dernier mois des trackers."""
+    y, mo, _ = _CT_MOIS_REAL[-1]
+    premier_mois_suivant = dt.date(y + (1 if mo == 12 else 0), (mo % 12) + 1, 1)
+    return premier_mois_suivant - dt.timedelta(days=1)
+
+
 def _smart_treso():
-    """Smart Tréso : répartition de la trésorerie en poches à t=0.
-    Le fonctionnement (1 mois de décaissements) et les charges viennent du modèle ;
-    la couverture de précaution est ajustable de 1 à 6 mois et l'excédent bascule
-    automatiquement en investissement."""
+    """Smart Tréso : allocation de la trésorerie en poches à t=0 + projection sur 2 mois.
+    Tout est dérivé du Compte de résultat cash : le fonctionnement vient des charges
+    projetées, la trajectoire de trésorerie du cumul des soldes nets. La couverture
+    choisie à t=0 est reportée telle quelle dans la projection."""
     m = _hyp_moteurs()
     incompressible = m["fix"][1]
     variable = m["var"][1] + m["ponc"][1]
@@ -2599,41 +2607,46 @@ def _smart_treso():
     precaution = nb * fonct
     legacy = _SMART_LEGACY
     dispo = _SMART_TRESO_DISPO
-    invest = max(0.0, dispo - precaution - legacy)
+    invest0 = max(0.0, dispo - precaution - legacy)
+
+    # Trajectoire de trésorerie : solde de départ + cumul des soldes nets projetés,
+    # eux-mêmes issus des trackers via _flux_projetes -> une seule vérité.
+    flux = _flux_projetes()
+    treso = [dispo]
+    for k in range(2):
+        treso.append(treso[-1] + flux[k]["net"])
+    invest_proj = [max(0.0, t - precaution - legacy) for t in treso]
 
     st.markdown(
         "<style>"
-        ".st-key-smart_f,.st-key-smart_p,.st-key-smart_l{background:#0E1626;border:1px solid #1E2A3D;"
-        "border-radius:14px;padding:14px 18px;min-height:214px;}"
+        ".st-key-smart_f,.st-key-smart_p,.st-key-smart_l,.st-key-smart_i{background:#0E1626;"
+        "border:1px solid #1E2A3D;border-radius:14px;padding:14px 18px;min-height:210px;}"
         ".st-key-smart_f{border-left:4px solid #2D6BFF;}"
         ".st-key-smart_p{border-left:4px solid #5DCAA5;}"
         ".st-key-smart_l{border-left:4px solid #7F77DD;}"
-        ".st-key-smart_invest{background:#0E1626;border:1px solid rgba(224,160,74,0.5);"
-        "border-left:4px solid #E0A04A;border-radius:14px;padding:14px 18px;margin-top:12px;}"
+        ".st-key-smart_i{border-left:4px solid #E0A04A;border-color:rgba(224,160,74,0.5);}"
         ".st-key-smart_go button{background:rgba(45,107,255,0.14) !important;"
         "border:1px solid #2D6BFF !important;color:#5A96FF !important;font-weight:600 !important;}"
         "</style>",
         unsafe_allow_html=True,
     )
 
-    # En-tête + barre d'allocation (segments qui somment à la trésorerie)
+    releve = _date_dernier_releve().strftime("%d/%m/%Y")
     segs = [(fonct, "#2D6BFF"), (precaution - fonct, "#5DCAA5"),
-            (legacy, "#7F77DD"), (invest, "#E0A04A")]
+            (legacy, "#7F77DD"), (invest0, "#E0A04A")]
     bar = '<div style="display:flex;height:46px;border-radius:8px;overflow:hidden;margin:12px 0 4px;">'
     for val, col in segs:
         w = max(0.0, val / dispo * 100.0)
         bar += ('<div style="width:' + f"{w:.2f}" + '%;background:' + col + ';opacity:0.85;'
                 'display:flex;align-items:center;justify-content:center;font-size:14.5px;'
                 'color:#0b1220;font-weight:800;">' + (_ct_k(val) if w > 5 else "") + '</div>')
-    # Espace entre le bandeau d'allocation et les cartes des poches.
     bar += '</div><div style="height:14px;"></div>'
     st.markdown(
         '<div style="display:flex;justify-content:space-between;align-items:flex-end;">'
-        '<div><div style="font-size:16px;font-weight:700;color:#e8ecf4;">Allocation de la trésorerie</div>'
-        '<div style="font-size:12px;color:#8a90a0;">Photo à t=0 · basée sur le prévisionnel 12 mois · '
-        'montants en k€</div></div>'
-        '<div style="text-align:right;"><div style="font-size:12px;color:#8a90a0;">Trésorerie disponible</div>'
-        '<div style="font-size:20px;font-weight:800;color:#fff;">' + _ct_k(dispo) + ' k€</div></div></div>'
+        '<div><div style="font-size:15px;font-weight:700;color:#e8ecf4;">Allocation actuelle · t=0</div>'
+        '<div style="font-size:11.5px;color:#8a90a0;">Solde réel des comptes au ' + releve + '</div></div>'
+        '<div style="text-align:right;"><div style="font-size:11.5px;color:#8a90a0;">Trésorerie disponible</div>'
+        '<div style="font-size:19px;font-weight:800;color:#fff;">' + _ct_k(dispo) + ' k€</div></div></div>'
         + bar, unsafe_allow_html=True)
 
     def _detail(lbl, val):
@@ -2641,57 +2654,79 @@ def _smart_treso():
                 'font-size:12px;">' + lbl + '</span><span style="color:#fff;font-size:12px;'
                 'font-weight:600;">' + _ct_k(val) + ' k€</span></div>')
 
-    c1, c2, c3 = st.columns(3, gap="medium")
+    c1, c2, c3, c4 = st.columns(4, gap="medium")
     with c1:
         with st.container(key="smart_f"):
             st.markdown(
-                '<div style="font-size:14px;font-weight:700;color:#9fc0ff;">Poche de fonctionnement</div>'
-                "<div style=\"font-size:11px;color:#8a90a0;\">1 mois d'exploitation · immédiatement disponible</div>"
-                '<div style="font-size:26px;font-weight:800;color:#fff;margin-top:12px;">' + _ct_k(fonct) + ' k€</div>'
+                '<div style="font-size:13.5px;font-weight:700;color:#9fc0ff;">Fonctionnement</div>'
+                "<div style=\"font-size:11px;color:#8a90a0;\">1 mois d'exploitation</div>"
+                '<div style="font-size:24px;font-weight:800;color:#fff;margin-top:12px;">' + _ct_k(fonct) + ' k€</div>'
                 '<div style="border-top:1px solid #1E2A3D;margin-top:10px;padding-top:8px;">'
-                + _detail("Trésorerie incompressible", incompressible)
+                + _detail("Incompressible", incompressible)
                 + _detail("Variable &amp; aléatoire", variable) + '</div>',
                 unsafe_allow_html=True)
     with c2:
         with st.container(key="smart_p"):
             st.markdown(
-                '<div style="font-size:14px;font-weight:700;color:#8fe0c4;">Poche de précaution</div>'
-                '<div style="font-size:11px;color:#8a90a0;">Matelas de sécurité · fonctionnement inclus</div>'
-                '<div style="font-size:26px;font-weight:800;color:#fff;margin-top:12px;">' + _ct_k(precaution)
-                + ' k€<span style="font-size:11px;color:#5a6478;font-weight:400;margin-left:8px;">= '
-                + str(nb) + ' × ' + _ct_k(fonct) + ' k€</span></div>',
+                '<div style="font-size:13.5px;font-weight:700;color:#8fe0c4;">Précaution</div>'
+                '<div style="font-size:11px;color:#8a90a0;">Fonctionnement inclus</div>'
+                '<div style="font-size:24px;font-weight:800;color:#fff;margin-top:12px;">' + _ct_k(precaution) + ' k€</div>'
+                '<div style="font-size:11px;color:#c3ccdd;margin-top:10px;">Couverture (mois)</div>',
                 unsafe_allow_html=True)
-            # Pastilles 1..6 : tous les crans sont visibles et le choisi est surligné,
-            # ce que ni le slider ni le select_slider ne montrent.
-            st.markdown("<div style='font-size:12px;color:#c3ccdd;margin-bottom:2px;'>"
-                        "Couverture (mois de fonctionnement)</div>", unsafe_allow_html=True)
             st.pills("Couverture", ["1", "2", "3", "4", "5", "6"],
                      key="smart_nb_mois", label_visibility="collapsed")
     with c3:
         with st.container(key="smart_l"):
             st.markdown(
-                '<div style="font-size:14px;font-weight:700;color:#b9b3f0;">Poche Legacy</div>'
-                '<div style="font-size:11px;color:#8a90a0;">Provision pour paiements annuels</div>'
-                '<div style="font-size:26px;font-weight:800;color:#fff;margin-top:12px;">' + _ct_k(legacy) + ' k€</div>'
+                '<div style="font-size:13.5px;font-weight:700;color:#b9b3f0;">Legacy</div>'
+                '<div style="font-size:11px;color:#8a90a0;">Paiements annuels</div>'
+                '<div style="font-size:24px;font-weight:800;color:#fff;margin-top:12px;">' + _ct_k(legacy) + ' k€</div>'
                 '<div style="border-top:1px solid #1E2A3D;margin-top:10px;padding-top:8px;">'
-                + _detail("IS · solde &amp; acomptes", _SMART_LEGACY_IS)
+                + _detail("IS", _SMART_LEGACY_IS)
                 + _detail("Dividendes · CFE", _SMART_LEGACY_DIV) + '</div>',
                 unsafe_allow_html=True)
+    with c4:
+        with st.container(key="smart_i"):
+            st.markdown(
+                "<div style=\"font-size:13.5px;font-weight:700;color:#f0c489;\">Investissement</div>"
+                '<div style="font-size:11px;color:#8a90a0;">Excédent plaçable · ≤ 12 mois</div>'
+                '<div style="font-size:24px;font-weight:800;color:#E0A04A;margin-top:12px;">' + _ct_k(invest0) + ' k€</div>'
+                '<div style="font-size:11px;color:#5a6478;margin-top:10px;">Compte à terme, fonds monétaire, '
+                'obligations court terme</div>',
+                unsafe_allow_html=True)
 
-    with st.container(key="smart_invest"):
-        st.markdown(
-            '<div style="font-size:14px;font-weight:700;color:#f0c489;">Poche d\'investissement</div>'
-            '<div style="font-size:11px;color:#8a90a0;">Excédent plaçable une fois les autres poches '
-            'servies · court terme, ≤ 12 mois</div>'
-            '<div style="font-size:30px;font-weight:800;color:#E0A04A;margin-top:10px;">' + _ct_k(invest) + ' k€</div>'
-            '<div style="font-size:11px;color:#5a6478;margin-top:8px;">Horizon court : compte à terme, '
-            'fonds monétaire, obligations &lt; 12 mois — capital préservé, liquidité conservée</div>',
-            unsafe_allow_html=True)
-
-    _b1, b2, _b3 = st.columns([1, 1.2, 1])
-    with b2:
+    lb, _rb = st.columns([1.6, 3])
+    with lb:
         st.button("Voir les placements par poche →", key="smart_go",
                   on_click=_smart_aller_allocation, use_container_width=True)
+
+    st.markdown("<div style='border-top:1px solid #1E2A3D;margin:16px 0 4px;'></div>"
+                "<div style='font-size:15px;font-weight:700;color:#e8ecf4;'>Projection sur 2 mois</div>"
+                "<div style='font-size:11.5px;color:#8a90a0;'>Trésorerie et poches projetées · "
+                "couverture reportée de t=0</div>", unsafe_allow_html=True)
+
+    def _mini(titre, val, coul, bord, valcol="#fff"):
+        return ('<div style="flex:1;background:#0E1626;border:1px solid #1E2A3D;border-left:4px solid '
+                + bord + ';border-radius:10px;padding:10px 14px;">'
+                '<div style="font-size:11.5px;color:' + coul + ';">' + titre + '</div>'
+                '<div style="font-size:19px;font-weight:800;color:' + valcol + ';margin-top:6px;">'
+                + _ct_k(val) + ' k€</div></div>')
+
+    for idx in (1, 2):
+        row = (
+            '<div style="display:flex;gap:12px;margin-top:12px;">'
+            '<div style="width:180px;flex-shrink:0;background:#0d1526;border:1px solid #1a2336;'
+            'border-radius:12px;padding:10px 16px;">'
+            '<div style="font-size:13px;font-weight:700;color:#c3ccdd;">M+' + str(idx) + '</div>'
+            '<div style="font-size:10.5px;color:#8a90a0;">trésorerie projetée</div>'
+            '<div style="font-size:20px;font-weight:800;color:#fff;margin-top:6px;">'
+            + _ct_k(treso[idx]) + ' k€</div></div>'
+            + _mini("Fonctionnement", fonct, "#9fc0ff", "#2D6BFF")
+            + _mini("Précaution", precaution, "#8fe0c4", "#5DCAA5")
+            + _mini("Legacy", legacy, "#b9b3f0", "#7F77DD")
+            + _mini("Investissement", invest_proj[idx], "#f0c489", "#E0A04A", "#E0A04A")
+            + '</div>')
+        st.markdown(row, unsafe_allow_html=True)
     st.markdown("<div style='height:60px;'></div>", unsafe_allow_html=True)
 
 
