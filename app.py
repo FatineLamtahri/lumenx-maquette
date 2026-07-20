@@ -1080,16 +1080,6 @@ def _carte(html_interne, titre=None):
     )
 
 
-def _barre(label, valeur, pct, couleur="#2D6BFF"):
-    return (
-        "<div style='display:flex;align-items:center;gap:10px;margin:12px 0;'>"
-        f"<div style='width:170px;font-size:14px;color:#c2c6d2;'>{label}</div>"
-        "<div style='flex:1;height:10px;background:#1c1c2a;border-radius:6px;'>"
-        f"<div style='width:{pct}%;height:100%;background:{couleur};border-radius:6px;'></div></div>"
-        f"<div style='width:95px;text-align:right;font-size:14px;color:#fff;font-weight:600;'>{valeur}</div></div>"
-    )
-
-
 # ---- Compte de résultat cash · Vue d'ensemble --------------------------------
 # Charges fixes mensuelles et taux de charges variables : DÉRIVÉS du Charges Tracker,
 # source unique. Le taux variable exprime un poids par rapport au CA — à ne pas
@@ -2120,58 +2110,6 @@ def _crc_fiscalite_tracker():
     st.markdown("<div style='height:80px;'></div>", unsafe_allow_html=True)
 
 
-def _report_placements():
-    """Onglet Placements : détail par produit (montant, rendement, gain, maturité)."""
-    cell = "padding:14px 10px;border-top:1px solid #20202c;font-size:15px;"
-    def lg(prod, montant, rdt, gain, mat):
-        return (
-            f"<div style='{cell}color:#fff;'>{prod}</div>"
-            f"<div style='{cell}color:#fff;text-align:right;'>{montant}</div>"
-            f"<div style='{cell}color:#9fc0ff;text-align:right;'>{rdt}</div>"
-            f"<div style='{cell}color:#28c76f;text-align:right;'>{gain}</div>"
-            f"<div style='{cell}color:#c2c6d2;text-align:right;'>{mat}</div>"
-        )
-    ent = "padding:0 10px 8px;font-size:13px;color:#8a90a0;"
-    lignes = (
-        lg("Compte à terme 12 mois", "100 000 €", "3,8 %", "3 800 €", "15/03/2027")
-        + lg("Fonds monétaire", "80 000 €", "3,2 %", "2 560 €", "Liquide")
-        + lg("Obligations d'État", "50 000 €", "3,0 %", "1 500 €", "20/06/2028")
-        + lg("Livret pro", "20 000 €", "2,1 %", "420 €", "Liquide")
-    )
-    maturite = (
-        _barre("Liquide", "100 000 €", 40, "#28c76f")
-        + _barre("1–2 ans", "100 000 €", 40)
-        + _barre("> 2 ans", "50 000 €", 20, "#5A96FF")
-    )
-    st.markdown(
-        f"""
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;">
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Total placé</div>
-            <div style="font-size:25px;font-weight:800;color:#fff;margin-top:6px;">250 000 €</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Rendement moyen</div>
-            <div style="font-size:25px;font-weight:800;color:#9fc0ff;margin-top:6px;">3,4 %</div></div>
-          <div style="background:#15151f;border-radius:12px;padding:14px 16px;">
-            <div style="font-size:16px;color:#aab4c4;">Gain annuel estimé</div>
-            <div style="font-size:25px;font-weight:800;color:#28c76f;margin-top:6px;">8 280 €</div></div>
-        </div>
-
-        <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;margin-top:12px;">
-          <div style="font-size:16px;font-weight:600;color:#e8ecf4;margin-bottom:10px;">Détail des placements</div>
-          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.2fr;">
-            <div style="{ent}">Produit</div><div style="{ent}text-align:right;">Montant</div><div style="{ent}text-align:right;">Rendement</div><div style="{ent}text-align:right;">Gain / an</div><div style="{ent}text-align:right;">Maturité</div>
-            {lignes}
-          </div>
-        </div>
-
-        <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;margin-top:12px;">
-          <div style="font-size:16px;font-weight:600;color:#e8ecf4;margin-bottom:8px;">Répartition par maturité</div>{maturite}</div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 def _placeholder_onglet(titre, desc=""):
     """Contenu 'à venir' pour un onglet non encore construit (dans la DA)."""
     st.markdown(
@@ -2730,6 +2668,126 @@ def _smart_treso():
     st.markdown("<div style='height:60px;'></div>", unsafe_allow_html=True)
 
 
+# ---- Smart allocation : placements proposés par poche -----------------------------
+# Univers de placements par poche (nom, SRI, rendement brut %, net %, horizon).
+# Ordre : du moins au plus risqué (SRI puis taux). « Ne pas placer » est ajouté en
+# tête au rendu et présélectionné.
+_SA_OPTIONS = {
+    "fonct": [("Livret pro", 1, 2.1, 1.58, "immédiat"),
+              ("Raisin — DAT 15 jours", 1, 2.8, 2.10, "15 jours")],
+    "prec":  [("Banque — Livret pro+", 1, 2.5, 1.88, "immédiat"),
+              ("Raisin — Livret booster", 1, 3.0, 2.25, "immédiat")],
+    "leg":   [("Banque — DAT 6 mois", 1, 3.1, 2.33, "6 mois"),
+              ("Raisin — CAT (échéance alignée)", 1, 3.4, 2.55, "→ échéances")],
+    "inv":   [("Fonds monétaire", 1, 3.5, 2.63, "liquide"),
+              ("Raisin — CAT 12 mois", 1, 3.8, 2.85, "12 mois"),
+              ("Obligations < 12 mois", 2, 3.9, 2.93, "10 mois")],
+}
+_SA_EXISTANT = {"fonct": 0.0, "prec": 100.0, "leg": 0.0, "inv": 100.0}  # k€ déjà placés
+
+
+def _sa_label(o):
+    """Libellé d'option pour le radio : nom · SRI · taux · horizon."""
+    nom, sri, brut, net, hor = o
+    return (nom + "   ·   SRI " + str(sri) + "   ·   " + ("%.1f" % brut).replace(".", ",")
+            + " % brut / " + ("%.2f" % net).replace(".", ",") + " % net   ·   " + hor)
+
+
+def _smart_allocation():
+    """Smart allocation : pour chaque poche, un placement proposé (plusieurs options,
+    une seule sélectionnable) et un montant plafonné au disponible Smart tréso.
+    « Ne pas placer » est présélectionné : rien n'est engagé par défaut."""
+    m = _hyp_moteurs()
+    fonct = m["fix"][1] + m["var"][1] + m["ponc"][1]
+    nb = int(st.session_state.get("smart_nb_mois") or "3")
+    prec = nb * fonct
+    legacy = _SMART_LEGACY
+    invest = max(0.0, _SMART_TRESO_DISPO - prec - legacy)
+    poches = [("fonct", "Fonctionnement", "#2D6BFF", "#9fc0ff", fonct),
+              ("prec", "Précaution", "#5DCAA5", "#8fe0c4", prec),
+              ("leg", "Legacy", "#7F77DD", "#b9b3f0", legacy),
+              ("inv", "Investissement", "#E0A04A", "#f0c489", invest)]
+
+    st.markdown(
+        "<style>"
+        ".st-key-sa_fonct,.st-key-sa_prec,.st-key-sa_leg,.st-key-sa_inv{background:#0E1626;"
+        "border:1px solid #1E2A3D;border-radius:14px;padding:14px 18px;margin-top:12px;}"
+        ".st-key-sa_fonct{border-left:4px solid #2D6BFF;}"
+        ".st-key-sa_prec{border-left:4px solid #5DCAA5;}"
+        ".st-key-sa_leg{border-left:4px solid #7F77DD;}"
+        ".st-key-sa_inv{border-left:4px solid #E0A04A;}"
+        "[class*='st-key-sa_mnt_'] input{text-align:right !important;}"
+        ".st-key-sa_go button{background:rgba(45,107,255,0.16) !important;"
+        "border:1px solid #2D6BFF !important;color:#5A96FF !important;font-weight:700 !important;}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div style="background:rgba(45,107,255,0.07);border:1px solid rgba(45,107,255,0.35);'
+        'border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;">'
+        '<div><div style="font-size:12px;font-weight:700;color:#9fc0ff;">Profil de risque · '
+        'MiFID + confiance business</div>'
+        '<div style="font-size:11px;color:#c3ccdd;">Prudent · capital garanti exigé · '
+        'SRI max 2 · horizon ≤ 12 mois</div></div>'
+        '<div style="align-self:center;font-size:11px;color:#5A96FF;">Revoir mes réponses →</div></div>',
+        unsafe_allow_html=True)
+
+    total_place = total_gain = 0.0
+    nb_sel = 0
+    for pid, nom, coul, txtcol, montant in poches:
+        existant = _SA_EXISTANT[pid]
+        max_eur = max(0.0, montant - existant) * 1000.0
+        with st.container(key="sa_" + pid):
+            ex = ("" if existant == 0 else " · existant " + _ct_k(existant) + " k€")
+            st.markdown(
+                '<div style="font-size:13.5px;font-weight:700;color:' + txtcol + ';">' + nom
+                + ' · ' + _ct_k(montant) + ' k€<span style="font-size:11px;font-weight:400;'
+                'color:#8a90a0;">' + ex + '</span></div>',
+                unsafe_allow_html=True)
+            opts = _SA_OPTIONS[pid]
+            labels = ["Ne pas placer"] + [_sa_label(o) for o in opts]
+            choix = st.radio("Placement " + nom, labels, index=0,
+                             key="sa_choix_" + pid, label_visibility="collapsed")
+            idx = labels.index(choix) if choix in labels else 0
+            if idx > 0:
+                o = opts[idx - 1]
+                mk = "sa_mnt_" + pid
+                st.session_state.setdefault(mk, round(max_eur))
+                # Plafond dynamique : si le disponible a baissé (couverture modifiée),
+                # on ramène la saisie sous le nouveau maximum avant d'afficher le champ.
+                if st.session_state.get(mk, 0) > max_eur:
+                    st.session_state[mk] = round(max_eur)
+                cA, cB = st.columns([1.2, 2.5])
+                mont = cA.number_input(
+                    "Montant à placer (€) · max " + f"{max_eur:,.0f}".replace(",", " "),
+                    min_value=0.0, max_value=float(max_eur), step=1000.0, key=mk)
+                gain = mont / 1000.0 * o[3] / 100.0
+                cB.markdown(
+                    "<div style='margin-top:26px;font-size:12px;color:#8a90a0;'>Gain espéré : "
+                    "<span style='color:" + txtcol + ";font-weight:700;'>+ " + _ct_k(gain)
+                    + " k€ net/an</span></div>", unsafe_allow_html=True)
+                total_place += mont / 1000.0
+                total_gain += gain
+                nb_sel += 1
+
+    if nb_sel:
+        with st.container(key="sa_go"):
+            if st.button("Placer les montants sélectionnés  ·  " + str(nb_sel) + " poche(s)  ·  "
+                         + f"{total_place*1000:,.0f}".replace(",", " ") + " €  ·  gain + "
+                         + _ct_k(total_gain) + " k€ net/an", use_container_width=True):
+                st.success("Ordres transmis à Raisin (démonstration).")
+    else:
+        st.markdown(
+            "<div style='background:#0d1424;border:1px solid #1a2336;border-radius:12px;"
+            "padding:13px;text-align:center;margin-top:12px;font-size:13px;color:#8a90a0;'>"
+            "Aucun placement sélectionné — choisissez une option et saisissez un montant</div>",
+            unsafe_allow_html=True)
+    st.markdown("<div style='font-size:10.5px;color:#5a6478;margin-top:10px;'>Une seule "
+                "proposition sélectionnable par poche · le montant ne peut jamais dépasser le "
+                "disponible Smart tréso.</div><div style='height:60px;'></div>",
+                unsafe_allow_html=True)
+
+
 def ecran_dashboard():
     """Tableau de bord : 4 onglets horizontaux (Ma tréso, Compte de résultat cash,
     Smart tréso, Smart allocation). Le Compte de résultat cash a 4 sous-onglets
@@ -2808,7 +2866,7 @@ def ecran_dashboard():
     elif actif == "Smart tréso":
         _smart_treso()
     else:
-        _report_placements()
+        _smart_allocation()
 
 
 def espace_profil():
