@@ -2594,8 +2594,8 @@ def _smart_treso():
     incompressible = m["fix"][1]
     variable = m["var"][1] + m["ponc"][1]
     fonct = incompressible + variable
-    st.session_state.setdefault("smart_nb_mois", 3)
-    nb = st.session_state["smart_nb_mois"]
+    st.session_state.setdefault("smart_nb_mois", "3")
+    nb = int(st.session_state.get("smart_nb_mois") or "3")
     precaution = nb * fonct
     legacy = _SMART_LEGACY
     dispo = _SMART_TRESO_DISPO
@@ -2661,9 +2661,12 @@ def _smart_treso():
                 + ' k€<span style="font-size:11px;color:#5a6478;font-weight:400;margin-left:8px;">= '
                 + str(nb) + ' × ' + _ct_k(fonct) + ' k€</span></div>',
                 unsafe_allow_html=True)
-            # select_slider affiche les crans 1/2/3/4/5/6 (le slider continu n'en montre aucun)
-            st.select_slider("Couverture (mois de fonctionnement)",
-                             options=[1, 2, 3, 4, 5, 6], key="smart_nb_mois")
+            # Pastilles 1..6 : tous les crans sont visibles et le choisi est surligné,
+            # ce que ni le slider ni le select_slider ne montrent.
+            st.markdown("<div style='font-size:12px;color:#c3ccdd;margin-bottom:2px;'>"
+                        "Couverture (mois de fonctionnement)</div>", unsafe_allow_html=True)
+            st.pills("Couverture", ["1", "2", "3", "4", "5", "6"],
+                     key="smart_nb_mois", label_visibility="collapsed")
     with c3:
         with st.container(key="smart_l"):
             st.markdown(
