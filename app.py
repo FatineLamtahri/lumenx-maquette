@@ -2740,35 +2740,38 @@ def _smart_allocation():
         with st.container(key="sa_" + pid):
             ex = ("" if existant == 0 else " · existant " + _ct_k(existant) + " k€")
             st.markdown(
-                '<div style="font-size:13.5px;font-weight:700;color:' + txtcol + ';">' + nom
-                + ' · ' + _ct_k(montant) + ' k€<span style="font-size:11px;font-weight:400;'
+                '<div style="font-size:13.5px;font-weight:700;color:' + txtcol + ';margin-bottom:4px;">'
+                + nom + ' · ' + _ct_k(montant) + ' k€<span style="font-size:11px;font-weight:400;'
                 'color:#8a90a0;">' + ex + '</span></div>',
                 unsafe_allow_html=True)
             opts = _SA_OPTIONS[pid]
             labels = ["Ne pas placer"] + [_sa_label(o) for o in opts]
-            choix = st.radio("Placement " + nom, labels, index=0,
-                             key="sa_choix_" + pid, label_visibility="collapsed")
+            col_opt, col_mnt = st.columns([2.6, 1.15], vertical_alignment="top")
+            with col_opt:
+                choix = st.radio("Placement " + nom, labels, index=0,
+                                 key="sa_choix_" + pid, label_visibility="collapsed")
             idx = labels.index(choix) if choix in labels else 0
-            if idx > 0:
-                o = opts[idx - 1]
-                mk = "sa_mnt_" + pid
-                st.session_state.setdefault(mk, round(max_eur))
-                # Plafond dynamique : si le disponible a baissé (couverture modifiée),
-                # on ramène la saisie sous le nouveau maximum avant d'afficher le champ.
-                if st.session_state.get(mk, 0) > max_eur:
-                    st.session_state[mk] = round(max_eur)
-                cA, cB = st.columns([1.2, 2.5])
-                mont = cA.number_input(
-                    "Montant à placer (€) · max " + f"{max_eur:,.0f}".replace(",", " "),
-                    min_value=0.0, max_value=float(max_eur), step=1000.0, key=mk)
-                gain = mont / 1000.0 * o[3] / 100.0
-                cB.markdown(
-                    "<div style='margin-top:26px;font-size:12px;color:#8a90a0;'>Gain espéré : "
-                    "<span style='color:" + txtcol + ";font-weight:700;'>+ " + _ct_k(gain)
-                    + " k€ net/an</span></div>", unsafe_allow_html=True)
-                total_place += mont / 1000.0
-                total_gain += gain
-                nb_sel += 1
+            actif = idx > 0
+            # Le champ montant est TOUJOURS affiché (grisé si « Ne pas placer »), pour
+            # qu'on voie d'emblée qu'un montant est saisissable, plafonné au disponible.
+            mk = "sa_mnt_" + pid
+            st.session_state.setdefault(mk, float(round(max_eur)))
+            if st.session_state.get(mk, 0.0) > max_eur:
+                st.session_state[mk] = float(round(max_eur))
+            with col_mnt:
+                mont = st.number_input("Montant à placer (€)", min_value=0.0,
+                                       max_value=float(max_eur), step=1000.0,
+                                       key=mk, disabled=not actif)
+                if actif:
+                    gain = mont / 1000.0 * opts[idx - 1][3] / 100.0
+                    st.caption("max " + f"{max_eur:,.0f}".replace(",", " ") + " € · gain + "
+                               + _ct_k(gain) + " k€ net/an")
+                    total_place += mont / 1000.0
+                    total_gain += gain
+                    nb_sel += 1
+                else:
+                    st.caption("max " + f"{max_eur:,.0f}".replace(",", " ")
+                               + " € · choisissez une option")
 
     if nb_sel:
         with st.container(key="sa_go"):
