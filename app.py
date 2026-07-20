@@ -2730,6 +2730,10 @@ def _smart_allocation():
         # boutons de sélection : glyphe radio, transparents et compacts
         "[class*='st-key-sa_b_'] button{background:transparent !important;border:none !important;"
         "padding:0 !important;min-height:0 !important;font-size:16px !important;color:#5DCAA5 !important;}"
+        # lien « déjà placé → Placements » : allure de lien, aligné à droite
+        "[class*='st-key-sa_hist_'] button{background:transparent !important;border:none !important;"
+        "color:#5A96FF !important;font-size:11.5px !important;padding:0 !important;min-height:0 !important;"
+        "justify-content:flex-end !important;}"
         ".st-key-sa_go button{background:rgba(45,107,255,0.16) !important;"
         "border:1px solid #2D6BFF !important;color:#5A96FF !important;font-weight:700 !important;}"
         "</style>",
@@ -2750,19 +2754,30 @@ def _smart_allocation():
     nb_sel = 0
     for pid, nom, coul, txtcol, montant in poches:
         existant = _SA_EXISTANT[pid]
-        max_eur = max(0.0, montant - existant) * 1000.0
+        # La poche = trésorerie disponible à placer. L'existant est déjà investi
+        # ailleurs (hors trésorerie) : il ne réduit PAS le montant à placer, il n'est
+        # affiché que comme contexte.
+        max_eur = montant * 1000.0
         sel = st.session_state.setdefault("sa_pick_" + pid, 0)
         opts = _SA_OPTIONS[pid]
         # Si la couverture a changé et vidé la poche, on repasse en « ne pas placer ».
         if max_eur <= 0 and sel != 0:
             sel = st.session_state["sa_pick_" + pid] = 0
         with st.container(key="sa_" + pid):
-            ex = ("" if existant == 0 else " · existant " + _ct_k(existant) + " k€")
-            st.markdown(
-                '<div style="font-size:13.5px;font-weight:700;color:' + txtcol + ';margin-bottom:2px;">'
+            hc1, hc2 = st.columns([3, 1.5], vertical_alignment="center")
+            hc1.markdown(
+                '<div style="font-size:13.5px;font-weight:700;color:' + txtcol + ';">'
                 + nom + ' · ' + _ct_k(montant) + ' k€<span style="font-size:11px;font-weight:400;'
-                'color:#8a90a0;">' + ex + '</span></div>',
+                'color:#8a90a0;"> · trésorerie à placer</span></div>',
                 unsafe_allow_html=True)
+            # Historique : combien est déjà placé dans cette poche, avec renvoi vers
+            # l'écran Placements. C'est du contexte, pas de l'argent à réallouer.
+            if existant > 0:
+                hc2.button("Déjà placé ici : " + _ct_k(existant) + " k€  →", key="sa_hist_" + pid,
+                           on_click=go, args=("espace_avenir",), use_container_width=True)
+            else:
+                hc2.markdown("<div style='text-align:right;font-size:11px;color:#5a6478;'>"
+                             "aucun placement dans cette poche</div>", unsafe_allow_html=True)
             # En-tête de colonnes
             h = st.columns(_SA_RATIOS, vertical_alignment="center")
             for i, lbl in enumerate(["", "PLACEMENT", "SRI", "RENDEMENT · BRUT / NET", "HORIZON", "DICI"]):
