@@ -2123,14 +2123,300 @@ def _placeholder_onglet(titre, desc=""):
     )
 
 
+# ── Dataset 24 mois : SOURCE UNIQUE de l'écran Ma Tréso ──────────────────────
+# En PRODUCTION : agrégats mensuels reconstitués depuis l'historique bancaire
+# (Powens). Ici (maquette) : agrégats INVENTÉS mais cohérents. 12 mois réalisés
+# + 12 mois projetés. Chaque tuple = (année, mois, libellé, CA récurrent,
+# CA ponctuel, charges fixes, charges variables, charges ponctuelles), en k€.
+#   Encaissements = rec + pon   ·   Décaissements = cf + cv + cp
+#   Solde = Enc − Déc   ·   Trésorerie fin de mois = cumul des soldes.
+# Règle : un chiffre affiché à plusieurs endroits vient d'ICI (jamais recopié).
+_MT_TRESO_BASE = 1000.0  # trésorerie fin juil. 2025 (k€), avant le 1er mois réalisé
+_MT_TX_VAR = 0.135       # part variable des charges (sert au calcul de σ, option B)
+
+_MT_REAL = [
+    (2025, 8, "Août", 196, 20, 144, 29, 3),
+    (2025, 9, "Sept", 198, 14, 144, 29, 4),
+    (2025, 10, "Oct", 200, 12, 150, 29, 8),
+    (2025, 11, "Nov", 200, 8, 144, 28, 66),
+    (2025, 12, "Déc", 202, 25, 144, 31, 112),
+    (2026, 1, "Jan", 204, 10, 144, 29, 111),
+    (2026, 2, "Fév", 206, 95, 144, 41, 1),
+    (2026, 3, "Mar", 208, 255, 144, 63, 1),
+    (2026, 4, "Avr", 205, 15, 144, 30, 260),
+    (2026, 5, "Mai", 208, 22, 144, 31, 2),
+    (2026, 6, "Juin", 214, 42, 166, 34, 25),
+    (2026, 7, "Juil", 211, 27, 144, 32, 2),
+]
+_MT_PROJ = [
+    # Projection par défaut : base récurrente reconduite, ponctuels (pon, cp) à 0.
+    (2026, 8, "Août", 213, 0, 144, 29, 0),
+    (2026, 9, "Sept", 215, 0, 144, 29, 0),
+    (2026, 10, "Oct", 216, 0, 144, 29, 0),
+    (2026, 11, "Nov", 218, 0, 144, 29, 0),
+    (2026, 12, "Déc", 220, 0, 144, 30, 0),
+    (2027, 1, "Jan", 221, 0, 144, 30, 0),
+    (2027, 2, "Fév", 223, 0, 144, 30, 0),
+    (2027, 3, "Mar", 224, 0, 144, 30, 0),
+    (2027, 4, "Avr", 226, 0, 144, 31, 0),
+    (2027, 5, "Mai", 228, 0, 144, 31, 0),
+    (2027, 6, "Juin", 230, 0, 144, 31, 0),
+    (2027, 7, "Juil", 232, 0, 144, 31, 0),
+]
+
+
+def _mt_serie(rows):
+    """Complète chaque mois par enc, déc, solde (dérivés, jamais saisis)."""
+    out = []
+    for (y, mo, lib, rec, pon, cf, cv, cp) in rows:
+        enc, dec = rec + pon, cf + cv + cp
+        out.append({"y": y, "mo": mo, "lib": lib, "rec": rec, "pon": pon,
+                    "cf": cf, "cv": cv, "cp": cp, "enc": enc, "dec": dec,
+                    "solde": enc - dec})
+    return out
+
+
+def _mt_trajectoire():
+    """Réalisé + projeté, chacun porté par sa trésorerie de fin de mois (cumul).
+    Le 1er mois projeté part du dernier solde réalisé : trajectoire chaînée."""
+    reals, projs = _mt_serie(_MT_REAL), _mt_serie(_MT_PROJ)
+    t = _MT_TRESO_BASE
+    for r in reals:
+        t += r["solde"]
+        r["treso"] = t
+    for p in projs:
+        t += p["solde"]
+        p["treso"] = t
+    return reals, projs
+
+
+def _mt_sigma():
+    """σ des soldes RÉCURRENTS réalisés, hors ponctuels (option B). Recalculé
+    depuis le dataset : la bande d'incertitude évolue avec les données."""
+    rec_soldes = [r["rec"] * (1 - _MT_TX_VAR) - r["cf"] for r in _mt_serie(_MT_REAL)]
+    n = len(rec_soldes)
+    if n < 2:
+        return 0.0
+    moy = sum(rec_soldes) / n
+    var = sum((x - moy) ** 2 for x in rec_soldes) / (n - 1)
+    return var ** 0.5
+
+
+def _mt_debut_fenetre(au, n):
+    """Premier jour du mois qui ouvre une fenêtre de n mois réalisés finissant à au."""
+    m, y = au.month - n + 1, au.year
+    while m <= 0:
+        m += 12
+        y -= 1
+    return dt.date(y, m, 1)
+
+
+def _mt_in_window(y, mo, du, au):
+    return (du.year, du.month) <= (y, mo) <= (au.year, au.month)
+
+
+def _mt_ticks(lo, hi):
+    """Graduations 'rondes' de l'axe Y sur l'intervalle [lo, hi]."""
+    raw = (hi - lo) / 4.0 if hi > lo else 1.0
+    step = 1000.0
+    for s in (10, 25, 50, 100, 150, 200, 250, 500, 1000):
+        if s >= raw:
+            step = float(s)
+            break
+    v, ticks = (lo // step) * step, []
+    while v <= hi + 0.5:
+        if v >= lo - 0.5:
+            ticks.append(v)
+        v += step
+    return ticks
+
+
+def _mt_sync_label():
+    """Fraîcheur de la synchro Powens : 'il y a …' si récent, 'le …' si trop ancien."""
+    maj = dt.datetime.now() - dt.timedelta(hours=2)  # maquette : dernière synchro simulée
+    sec = (dt.datetime.now() - maj).total_seconds()
+    if sec < 3600:
+        return f"Synchronisé il y a {int(sec // 60)} min"
+    if sec < 48 * 3600:
+        return f"Synchronisé il y a {int(sec // 3600)} h"
+    return "Synchronisé le " + maj.strftime("%d/%m à %Hh%M")
+
+
+def _mt_set_horizon():
+    """Callback bascule 3/6/12 : remplit Du/Au (fin = aujourd'hui)."""
+    lbl = st.session_state.get("mt_horizon")
+    if not lbl:
+        return
+    n = int(str(lbl).split()[0])
+    au = _date_dernier_releve()
+    st.session_state["mt_au"] = au
+    st.session_state["mt_du"] = _mt_debut_fenetre(au, n)
+
+
+def _mt_perso():
+    """Callback : modifier une date manuellement = mode personnalisé (pastille off)."""
+    st.session_state["mt_horizon"] = None
+
+
+def _mt_graph_svg(du, au):
+    """SVG dynamique de la courbe : Du/Au bornent le réalisé, la projection (12 mois,
+    horizon fixe) reste toujours à droite ; axe Y auto-échelle ; bande σ·√h ;
+    passage au rouge sous zéro."""
+    reals, projs = _mt_trajectoire()
+    sigma = _mt_sigma()
+    vis_r = [r for r in reals if _mt_in_window(r["y"], r["mo"], du, au)]
+    if not vis_r:
+        vis_r = reals[:]
+    vis_p = projs[:]
+    pts = vis_r + vis_p
+    n = len(pts)
+    idx_today = len(vis_r) - 1
+
+    uppers, lowers = [], []
+    for j, p in enumerate(vis_p):
+        d = 1.65 * sigma * ((j + 1) ** 0.5)
+        uppers.append(p["treso"] + d)
+        lowers.append(p["treso"] - d)
+
+    allv = [p["treso"] for p in pts] + uppers + lowers
+    lo, hi = min(allv), max(allv)
+    span = (hi - lo) or 100.0
+    pad = span * 0.10
+    ymin, ymax = lo - pad, hi + pad
+    neg = lo < 0
+
+    PL, PR, PT, PB = 66.0, 686.0, 24.0, 300.0
+
+    def X(i):
+        return PL + i * (PR - PL) / (n - 1 if n > 1 else 1)
+
+    def Y(v):
+        return PB - (v - ymin) / (ymax - ymin) * (PB - PT)
+
+    o = ["<svg viewBox='0 0 700 342' style='width:100%;height:auto;margin-top:10px;' "
+         "font-family='Inter,Segoe UI,sans-serif'>"]
+    for t in _mt_ticks(ymin, ymax):
+        y = Y(t)
+        lab = f"{t:,.0f}".replace(",", " ")
+        o.append(f"<line x1='{PL:.1f}' y1='{y:.1f}' x2='{PR:.1f}' y2='{y:.1f}' stroke='#141d2e'/>")
+        o.append(f"<text x='{PL - 6:.1f}' y='{y + 3:.1f}' text-anchor='end' font-size='9.5' fill='#5a6478'>{lab}</text>")
+    o.append(f"<text x='{PL - 40:.1f}' y='{PT + 4:.1f}' font-size='9.5' fill='#8a90a0'>k€</text>")
+    o.append(f"<line x1='{PL:.1f}' y1='{PB:.1f}' x2='{PR:.1f}' y2='{PB:.1f}' stroke='#2b3a52'/>")
+    for i, p in enumerate(pts):
+        col = "#c3ccdd" if i == idx_today else ("#8a90a0" if i < idx_today else "#6b7488")
+        o.append(f"<text x='{X(i):.1f}' y='{PB + 16:.1f}' text-anchor='middle' font-size='8.5' fill='{col}'>{p['lib']}</text>")
+    if neg:
+        y0 = Y(0.0)
+        o.append(f"<line x1='{PL:.1f}' y1='{y0:.1f}' x2='{PR:.1f}' y2='{y0:.1f}' stroke='#E0604A' stroke-dasharray='4 4' stroke-opacity='0.7'/>")
+        o.append(f"<text x='{PL - 6:.1f}' y='{y0 + 3:.1f}' text-anchor='end' font-size='9.5' fill='#E0604A'>0</text>")
+    xt = X(idx_today)
+    o.append(f"<line x1='{xt:.1f}' y1='{PT:.1f}' x2='{xt:.1f}' y2='{PB:.1f}' stroke='#5a6478' stroke-dasharray='3 4'/>")
+    o.append(f"<text x='{xt:.1f}' y='{PT - 4:.1f}' text-anchor='middle' font-size='9' fill='#c3ccdd'>aujourd'hui</text>")
+    band = [(xt, Y(vis_r[-1]["treso"]))]
+    for j in range(len(vis_p)):
+        band.append((X(idx_today + 1 + j), Y(uppers[j])))
+    for j in range(len(vis_p) - 1, -1, -1):
+        band.append((X(idx_today + 1 + j), Y(lowers[j])))
+    o.append("<polygon points='" + " ".join(f"{x:.1f},{y:.1f}" for x, y in band) + "' fill='#5DCAA5' opacity='0.16'/>")
+    hpts = " ".join(f"{X(i):.1f},{Y(vis_r[i]['treso']):.1f}" for i in range(len(vis_r)))
+    o.append(f"<polyline points='{hpts}' fill='none' stroke='#2D6BFF' stroke-width='2.5'/>")
+    ppl = [(xt, Y(vis_r[-1]["treso"]))] + [(X(idx_today + 1 + j), Y(vis_p[j]["treso"])) for j in range(len(vis_p))]
+    o.append("<polyline points='" + " ".join(f"{x:.1f},{y:.1f}" for x, y in ppl) + "' fill='none' stroke='#5DCAA5' stroke-width='2.5' stroke-dasharray='7 5'/>")
+    central = [(X(i), vis_r[i]["treso"]) for i in range(len(vis_r))] + \
+              [(X(idx_today + 1 + j), vis_p[j]["treso"]) for j in range(len(vis_p))]
+    for k in range(len(central) - 1):
+        if central[k][1] < 0 or central[k + 1][1] < 0:
+            (x1, v1), (x2, v2) = central[k], central[k + 1]
+            o.append(f"<polyline points='{x1:.1f},{Y(v1):.1f} {x2:.1f},{Y(v2):.1f}' fill='none' stroke='#E0604A' stroke-width='2.5'/>")
+    o.append(f"<circle cx='{xt:.1f}' cy='{Y(vis_r[-1]['treso']):.1f}' r='4' fill='#fff'/>")
+    ax = xt + 12
+    o.append(f"<rect x='{ax:.1f}' y='{PT + 6:.1f}' width='210' height='34' rx='8' fill='rgba(224,160,74,0.10)' stroke='#E0A04A' stroke-opacity='0.5'/>")
+    o.append(f"<text x='{ax + 12:.1f}' y='{PT + 21:.1f}' font-size='10' fill='#f0c489'>Projection par défaut</text>")
+    o.append(f"<text x='{ax + 12:.1f}' y='{PT + 34:.1f}' font-size='10' fill='#5A96FF'>Affiner les hypothèses →</text>")
+    ly = PB + 30
+    o.append(f"<line x1='{PL:.1f}' y1='{ly:.1f}' x2='{PL + 18:.1f}' y2='{ly:.1f}' stroke='#2D6BFF' stroke-width='2.5'/>")
+    o.append(f"<text x='{PL + 24:.1f}' y='{ly + 4:.1f}' font-size='10' fill='#c3ccdd'>Historique</text>")
+    o.append(f"<line x1='{PL + 108:.1f}' y1='{ly:.1f}' x2='{PL + 126:.1f}' y2='{ly:.1f}' stroke='#5DCAA5' stroke-width='2.5' stroke-dasharray='6 4'/>")
+    o.append(f"<text x='{PL + 132:.1f}' y='{ly + 4:.1f}' font-size='10' fill='#c3ccdd'>Projection</text>")
+    o.append(f"<rect x='{PL + 214:.1f}' y='{ly - 5:.1f}' width='16' height='10' fill='#5DCAA5' opacity='0.18'/>")
+    o.append(f"<text x='{PL + 236:.1f}' y='{ly + 4:.1f}' font-size='10' fill='#c3ccdd'>Incertitude (± σ·√h, hors ponctuels)</text>")
+    o.append("</svg>")
+    return "".join(o)
+
+
+def _mt_scan_treso_html():
+    """Bloc 'Scan tréso' : 3 derniers mois RÉALISÉS en valeur (pas de moyenne,
+    pas de colonne projeté). Toutes les valeurs viennent du dataset 24 mois."""
+    last3 = _mt_serie(_MT_REAL)[-3:]
+
+    def cells(key, coul, bold):
+        w = "font-weight:600;" if bold else ""
+        return "".join(
+            "<span style='width:74px;text-align:right;color:" + coul + ";font-size:12.5px;" + w + "'>"
+            + f"{r[key]:.0f}" + "</span>" for r in last3)
+
+    def ligne(lib, key, barre, vcoul="#fff"):
+        return ("<div style='display:flex;align-items:center;padding:8px 0;border-top:1px solid #1E2A3D;'>"
+                "<span style='width:3px;height:15px;background:" + barre + ";display:inline-block;margin-right:10px;'></span>"
+                "<span style='flex:1;color:#c3ccdd;font-size:13px;'>" + lib + "</span>"
+                + cells(key, vcoul, False) + "</div>")
+
+    def sous_total(lib, key, coul):
+        return ("<div style='display:flex;align-items:center;padding:8px 0;border-top:1px solid #1E2A3D;'>"
+                "<span style='width:3px;height:15px;display:inline-block;margin-right:10px;'></span>"
+                "<span style='flex:1;color:" + coul + ";font-size:12.5px;font-weight:600;'>" + lib + "</span>"
+                + cells(key, coul, True) + "</div>")
+
+    entete = ("<div style='display:flex;padding-bottom:4px;'><span style='flex:1;'></span>"
+              + "".join("<span style='width:74px;text-align:right;font-size:9.5px;font-weight:700;"
+                        "letter-spacing:0.4px;color:#5a6478;'>" + r["lib"].upper() + "</span>" for r in last3)
+              + "</div>")
+
+    solde_cells = ""
+    for r in last3:
+        v = r["solde"]
+        txt = ("+ " if v >= 0 else "− ") + f"{abs(v):.0f}"
+        solde_cells += ("<span style='width:74px;text-align:right;color:#fff;font-size:13px;"
+                        "font-weight:800;'>" + txt + "</span>")
+
+    return (
+        "<div style='background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;padding:16px 18px;'>"
+        "<div style='font-size:16px;font-weight:600;color:#e8ecf4;'>Scan tréso</div>"
+        "<div style='font-size:12px;color:#8a90a0;margin-bottom:6px;'>3 derniers mois réalisés — "
+        "valeurs mensuelles en k€</div>"
+        + entete
+        + ligne("CA récurrent", "rec", "#5DCAA5")
+        + ligne("CA ponctuel", "pon", "#5DCAA5")
+        + sous_total("Total encaissements", "enc", "#5DCAA5")
+        + ligne("Charges fixes", "cf", "#E0604A")
+        + ligne("Charges variables", "cv", "#E0604A")
+        + ligne("Charges ponctuelles", "cp", "#E0604A", "#c3ccdd")
+        + sous_total("Total décaissements", "dec", "#E0604A")
+        + "<div style='display:flex;align-items:center;padding:10px 0 0;border-top:1px solid #1E2A3D;margin-top:4px;'>"
+        "<span style='flex:1;color:#fff;font-size:13px;font-weight:700;'>Solde net</span>"
+        + solde_cells + "</div></div>"
+    )
+
+
 def _onglet_ma_treso():
     """Onglet 'Ma tréso' : courbe d'évolution, comptes connectés, période d'analyse,
     derniers mouvements (banque + n° de compte), et hypothèses éditables."""
+    # Fenêtre du graphe : par défaut 6 mois de réalisé finissant au dernier
+    # relevé (aujourd'hui). Semé UNE fois ; ensuite piloté par la bascule 3/6/12
+    # ou par la saisie manuelle des dates.
+    _mt_au0 = _date_dernier_releve()
+    st.session_state.setdefault("mt_au", _mt_au0)
+    st.session_state.setdefault("mt_du", _mt_debut_fenetre(_mt_au0, 6))
+    st.session_state.setdefault("mt_horizon", "6 mois")
     # CSS injecté UNE fois, hors des colonnes (sinon il crée un élément fantôme
     # qui décale l'espacement). Espacement vertical uniforme des cartes + style
     # de la carte 'Comptes connectés'.
     st.markdown(
         "<style>"
+        ".st-key-mt_graph{background:#0E1626;border:1px solid #1E2A3D;border-radius:16px;"
+        "padding:16px 18px;margin-bottom:20px;box-sizing:border-box;}"
+        ".st-key-mt_graph [data-testid='stDateInput'] input{background:#0b1220;color:#fff;font-size:12px;}"
+        ".st-key-mt_graph label{font-size:10px !important;color:#5a6478 !important;}"
         # Gap auto de Streamlit neutralisé (=0) : l'écart entre les cartes est fixé
         # par le margin-top de CHAQUE carte (voir plus bas), pas ici.
         ".st-key-mt_grid [data-testid='stColumn'] > [data-testid='stVerticalBlock']{gap:0 !important;}"
@@ -2143,87 +2429,29 @@ def _onglet_ma_treso():
     with st.container(key="mt_grid"):
         col_g, col_d = st.columns([1.2, 1], gap="medium")
     with col_g:
-        st.markdown(
-            """
-            <div style="background:#0E0E16;border:1px solid #20202c;border-radius:16px;padding:16px 18px;height:300px;box-sizing:border-box;">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:16px;font-weight:600;color:#e8ecf4;">Évolution de la trésorerie</span>
-                <span style="font-size:11px;color:#8a90a0;">16/04/2026 → 15/07/2026</span></div>
-              <div style="font-size:12px;color:#8a90a0;margin-top:2px;">Balance agrégée des comptes courants</div>
-              <div style="font-size:24px;font-weight:800;color:#fff;margin-top:8px;">1 240 000 €
-                <span style="font-size:13px;color:#28c76f;font-weight:600;">▲ +4,2 %</span></div>
-              <div style="display:flex;gap:18px;font-size:11px;color:#c3ccdd;margin-top:6px;">
-                <span><span style="color:#2D6BFF;font-weight:700;">━</span> Historique</span>
-                <span><span style="color:#5DCAA5;font-weight:700;">╌╌</span> Projection</span></div>
-              <svg viewBox="0 0 320 110" preserveAspectRatio="none" style="width:100%;height:110px;margin-top:8px;">
-                <defs><linearGradient id="gdmt" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2D6BFF" stop-opacity="0.30"/><stop offset="1" stop-color="#2D6BFF" stop-opacity="0"/></linearGradient></defs>
-                <polygon fill="url(#gdmt)" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50 240,110 0,110"/>
-                <polyline fill="none" stroke="#2D6BFF" stroke-width="2.5" points="0,90 30,82 60,86 90,70 120,74 150,58 180,62 210,46 240,50"/>
-                <polyline fill="none" stroke="#5DCAA5" stroke-width="2.5" stroke-dasharray="7 5" points="240,50 270,40 300,30 320,26"/>
-                <line x1="240" y1="8" x2="240" y2="110" stroke="#8a90a0" stroke-width="0.7" stroke-dasharray="3 4"/>
-              </svg>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        # Résumé LECTURE SEULE des moteurs, dérivé des trackers. Plus aucune saisie
-        # ici : un chiffre ne se règle qu'à l'endroit où il est le plus précis.
-        m = _hyp_moteurs()
-        def _lg(lib, cle, barre):
-            r, p = m[cle]
-            return ("<div style='display:flex;align-items:center;padding:9px 0;"
-                    "border-top:1px solid #1E2A3D;'>"
-                    "<span style='width:3px;height:15px;background:" + barre + ";display:inline-block;"
-                    "margin-right:10px;'></span>"
-                    "<span style='flex:1;color:#c3ccdd;font-size:13px;'>" + lib + "</span>"
-                    "<span style='width:90px;text-align:right;color:#8a90a0;font-size:12.5px;'>"
-                    + _ct_k(r) + "</span>"
-                    "<span style='width:90px;text-align:right;color:#fff;font-size:12.5px;"
-                    "font-weight:600;'>" + _ct_k(p) + "</span></div>")
-
-        def _st(lib, cles, coul):
-            """Sous-total : même gabarit, sans barre de couleur (cf. panneau Détail)."""
-            r = sum(m[c][0] for c in cles)
-            p = sum(m[c][1] for c in cles)
-            return ("<div style='display:flex;align-items:center;padding:9px 0;"
-                    "border-top:1px solid #1E2A3D;'>"
-                    "<span style='width:3px;height:15px;display:inline-block;margin-right:10px;'></span>"
-                    "<span style='flex:1;color:" + coul + ";font-size:12.5px;font-weight:600;'>" + lib + "</span>"
-                    "<span style='width:90px;text-align:right;color:" + coul
-                    + ";font-size:12.5px;font-weight:600;'>" + _ct_k(r) + "</span>"
-                    "<span style='width:90px;text-align:right;color:" + coul
-                    + ";font-size:12.5px;font-weight:600;'>" + _ct_k(p) + "</span></div>")
-
-        lignes_h = (_lg("CA récurrent", "rec", "#5DCAA5")
-                    + _lg("CA ponctuel", "pon", "#5DCAA5")
-                    + _st("Total encaissements", ("rec", "pon"), "#5DCAA5")
-                    + _lg("Charges fixes", "fix", "#E0604A")
-                    + _lg("Charges variables", "var", "#E0604A")
-                    + _lg("Charges ponctuelles", "ponc", "#E0604A")
-                    + _st("Total décaissements", ("fix", "var", "ponc"), "#E0604A"))
-        sr, sp = m["solde"]
-        st.markdown(
-            "<div style='background:#111B2C;border:1px solid #1E2A3D;border-radius:16px;"
-            "padding:16px 18px;margin-top:20px;'>"
-            "<div style='font-size:16px;font-weight:600;color:#e8ecf4;'>Principales hypothèses</div>"
-            "<div style='font-size:12px;color:#8a90a0;margin-bottom:6px;'>Moyennes mensuelles en k€ — "
-            "calculées depuis les trackers, modifiables à leur source</div>"
-            "<div style='display:flex;padding-bottom:4px;'>"
-            "<span style='flex:1;'></span>"
-            "<span style='width:90px;text-align:right;font-size:9.5px;font-weight:700;"
-            "letter-spacing:0.5px;color:#5a6478;'>RÉALISÉ</span>"
-            "<span style='width:90px;text-align:right;font-size:9.5px;font-weight:700;"
-            "letter-spacing:0.5px;color:#5a6478;'>PROJETÉ</span></div>"
-            + lignes_h +
-            "<div style='display:flex;align-items:center;padding:10px 0 0;"
-            "border-top:1px solid #1E2A3D;margin-top:4px;'>"
-            "<span style='flex:1;color:#fff;font-size:13px;font-weight:700;'>Solde net moyen</span>"
-            "<span style='width:90px;text-align:right;color:#8a90a0;font-size:12.5px;"
-            "font-weight:700;'>+ " + _ct_k(sr) + "</span>"
-            "<span style='width:90px;text-align:right;color:#5DCAA5;font-size:13px;"
-            "font-weight:800;'>+ " + _ct_k(sp) + "</span></div></div>",
-            unsafe_allow_html=True,
-        )
+        with st.container(key="mt_graph"):
+            reals_now, _ = _mt_trajectoire()
+            cur = reals_now[-1]["treso"]
+            cur_eur = f"{int(round(cur * 1000)):,}".replace(",", " ") + " €"
+            st.markdown(
+                "<div style='display:flex;justify-content:space-between;align-items:flex-start;'>"
+                "<div><div style='font-size:16px;font-weight:700;color:#e8ecf4;'>Évolution de la trésorerie</div>"
+                "<div style='font-size:11px;color:#8a90a0;margin-top:2px;'>Balance agrégée · axe auto-échelle</div></div>"
+                "<div style='text-align:right;'><div style='font-size:11px;color:#8fe0c4;'>● "
+                + _mt_sync_label() + "</div>"
+                "<div style='font-size:22px;font-weight:800;color:#fff;margin-top:2px;'>" + cur_eur
+                + "</div></div></div>",
+                unsafe_allow_html=True,
+            )
+            c1, c2, c3 = st.columns([1, 1, 1.6])
+            du = c1.date_input("Du", key="mt_du", format="DD/MM/YYYY", on_change=_mt_perso)
+            au = c2.date_input("Au", key="mt_au", format="DD/MM/YYYY", on_change=_mt_perso)
+            with c3:
+                st.pills("Fenêtre", ["3 mois", "6 mois", "12 mois"], key="mt_horizon",
+                         on_change=_mt_set_horizon, label_visibility="collapsed")
+            st.markdown(_mt_graph_svg(du, au), unsafe_allow_html=True)
+        # Scan tréso : 3 derniers mois réalisés, en valeur (dataset 24 mois).
+        st.markdown(_mt_scan_treso_html(), unsafe_allow_html=True)
 
     with col_d:
         with st.container(key="mt_comptes"):
